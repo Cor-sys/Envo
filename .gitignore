@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.env
+.env.local
+.env.*.local
+*.log
+.DS_Store
+.vite/
+
+# Claude Code: per-user / per-machine config, not shared.
+.claude/settings.local.json

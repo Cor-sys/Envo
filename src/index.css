@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body, #root { height: 100%; }
+  /* iOS Safari: keep tap targets responsive, no double-tap zoom shenanigans. */
+  button, [role='button'] { touch-action: manipulation; }
+}
+
+@layer components {
+  /* Mobile-first tap target: 44px minimum hit area. */
+  .tap {
+    @apply min-h-[44px] min-w-[44px] inline-flex items-center justify-center
+           rounded-lg px-3 py-2 font-medium select-none;
+  }
+  .tap-primary  { @apply tap bg-slate-900 text-white active:bg-slate-700; }
+  .tap-secondary{ @apply tap bg-white text-slate-900 border border-slate-300 active:bg-slate-100; }
+  .tap-danger   { @apply tap bg-red-600 text-white active:bg-red-700; }
+
+  .pill {
+    @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium;
+  }
+  .pill-ok  { @apply pill bg-emerald-100 text-emerald-800; }
+  .pill-low { @apply pill bg-amber-100 text-amber-800; }
+  .pill-out { @apply pill bg-red-100 text-red-800; }
+}
