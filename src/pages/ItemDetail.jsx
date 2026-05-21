@@ -53,9 +53,9 @@ export default function ItemDetail() {
     }
   }
 
-  if (!item && error) return <div className="p-3 text-red-700">{error}</div>;
-  if (!item && loaded) return <div className="p-3 text-slate-500">Item not found.</div>;
-  if (!item) return <div className="p-3 text-slate-500">Loading…</div>;
+  if (!item && error) return <div className="p-3 text-red-400">{error}</div>;
+  if (!item && loaded) return <div className="p-3 text-slate-400">Item not found.</div>;
+  if (!item) return <div className="p-3 text-slate-400">Loading…</div>;
 
   const md = item.metadata ?? {};
   const subParts = [];
@@ -65,27 +65,31 @@ export default function ItemDetail() {
 
   return (
     <div className="p-3 space-y-4">
-      <button onClick={() => nav(-1)} className="text-sm text-slate-500">← Back</button>
+      <button onClick={() => nav(-1)} className="text-sm text-slate-400 hover:text-slate-200 transition-colors">
+        ← Back
+      </button>
 
       <div className="space-y-1">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold">{item.name}</h2>
+          <h2 className="text-xl font-semibold text-slate-100">{item.name}</h2>
           <StatusPill status={item.status} />
         </div>
-        <div className="text-xs text-slate-400">{itemTypeLabel(item.item_type)}</div>
-        <div className="text-sm text-slate-600">{subParts.join(' · ')}</div>
+        <div className="text-xs text-slate-500 uppercase tracking-wide">
+          {itemTypeLabel(item.item_type)}
+        </div>
+        <div className="text-sm text-slate-400">{subParts.join(' · ')}</div>
         {item.needs_label && (
-          <div className="text-xs text-amber-700">
+          <div className="text-xs text-amber-300">
             no factory barcode — needs printed QR label
           </div>
         )}
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-4">
+      <div className="surface p-4">
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-xs uppercase text-slate-500">On hand</div>
-            <div className="text-3xl font-semibold tabular-nums">{item.qty}</div>
+            <div className="text-xs uppercase text-slate-500 tracking-wide">On hand</div>
+            <div className="text-3xl font-semibold tabular-nums text-slate-100">{item.qty}</div>
             <div className="text-xs text-slate-500">threshold {item.threshold}</div>
           </div>
           <div className="flex flex-col gap-2">
@@ -105,12 +109,12 @@ export default function ItemDetail() {
             </button>
           </div>
         </div>
-        {error && <p className="mt-3 text-red-700 text-sm">{error}</p>}
+        {error && <p className="mt-3 text-red-400 text-sm">{error}</p>}
       </div>
 
       <section className="space-y-2">
-        <h3 className="text-sm font-medium text-slate-700">Details</h3>
-        <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1 text-sm">
+        <h3 className="text-sm font-medium text-slate-300">Details</h3>
+        <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1 text-sm text-slate-200">
           <dt className="text-slate-500">Type</dt><dd>{itemTypeLabel(item.item_type)}</dd>
           {item.category && (
             <><dt className="text-slate-500">Category</dt><dd>{item.category}</dd></>
@@ -121,7 +125,7 @@ export default function ItemDetail() {
           {item.barcode && (
             <>
               <dt className="text-slate-500">Barcode</dt>
-              <dd className="font-mono text-xs">{item.barcode}</dd>
+              <dd className="font-mono text-xs text-slate-300">{item.barcode}</dd>
             </>
           )}
           {item.location_text && (
@@ -137,18 +141,18 @@ export default function ItemDetail() {
       </section>
 
       <section className="space-y-2">
-        <h3 className="text-sm font-medium text-slate-700">Recent activity</h3>
+        <h3 className="text-sm font-medium text-slate-300">Recent activity</h3>
         {txns.length === 0 ? (
           <p className="text-sm text-slate-500">No movements yet.</p>
         ) : (
-          <ul className="divide-y divide-slate-200 rounded-xl border border-slate-200 bg-white">
+          <ul className="surface divide-y divide-slate-800">
             {txns.map((t) => (
               <li key={t.id} className="flex items-center justify-between px-3 py-2 text-sm">
                 <div>
-                  <span className={t.direction === 'in' ? 'text-emerald-700' : 'text-red-700'}>
+                  <span className={t.direction === 'in' ? 'text-emerald-400' : 'text-red-400'}>
                     {t.direction === 'in' ? '+' : '−'}{t.qty}
                   </span>
-                  <span className="ml-2 text-slate-500">{t.staff_label || '—'}</span>
+                  <span className="ml-2 text-slate-400">{t.staff_label || '—'}</span>
                 </div>
                 <div className="text-xs text-slate-500">
                   {new Date(t.occurred_at).toLocaleString()}

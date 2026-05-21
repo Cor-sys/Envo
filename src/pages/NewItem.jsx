@@ -75,14 +75,14 @@ export default function NewItem() {
     }
   }
 
-  const inputCls = 'mt-1 w-full rounded-lg border border-slate-300 px-3 py-2';
+  const inputCls = 'mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 placeholder-slate-500';
 
   return (
     <form className="space-y-3 p-3" onSubmit={submit}>
       <h2 className="text-xl font-semibold">New item</h2>
 
       <label className="block">
-        <span className="block text-sm text-slate-700">Type *</span>
+        <span className="block text-sm text-slate-300">Type *</span>
         <select
           className={inputCls}
           value={v.item_type}
@@ -95,7 +95,7 @@ export default function NewItem() {
       </label>
 
       <label className="block">
-        <span className="block text-sm text-slate-700">Name *</span>
+        <span className="block text-sm text-slate-300">Name *</span>
         <input
           className={inputCls}
           required
@@ -105,7 +105,7 @@ export default function NewItem() {
       </label>
 
       <label className="block">
-        <span className="block text-sm text-slate-700">Category</span>
+        <span className="block text-sm text-slate-300">Category</span>
         <input
           className={inputCls}
           placeholder="optional sub-category"
@@ -116,7 +116,7 @@ export default function NewItem() {
 
       <div className="grid grid-cols-2 gap-3">
         <label className="block">
-          <span className="block text-sm text-slate-700">Brand</span>
+          <span className="block text-sm text-slate-300">Brand</span>
           <input
             className={inputCls}
             value={v.brand}
@@ -124,7 +124,7 @@ export default function NewItem() {
           />
         </label>
         <label className="block">
-          <span className="block text-sm text-slate-700">Model</span>
+          <span className="block text-sm text-slate-300">Model</span>
           <input
             className={inputCls}
             value={v.model}
@@ -134,7 +134,7 @@ export default function NewItem() {
       </div>
 
       <label className="block">
-        <span className="block text-sm text-slate-700">Factory UPC barcode</span>
+        <span className="block text-sm text-slate-300">Factory UPC barcode</span>
         <input
           className={inputCls}
           placeholder="leave blank if none — we'll print a QR"
@@ -145,7 +145,7 @@ export default function NewItem() {
 
       <div className="grid grid-cols-3 gap-3">
         <label className="block">
-          <span className="block text-sm text-slate-700">Qty</span>
+          <span className="block text-sm text-slate-300">Qty</span>
           <input
             className={inputCls}
             type="number"
@@ -155,7 +155,7 @@ export default function NewItem() {
           />
         </label>
         <label className="block">
-          <span className="block text-sm text-slate-700">Threshold</span>
+          <span className="block text-sm text-slate-300">Threshold</span>
           <input
             className={inputCls}
             type="number"
@@ -165,7 +165,7 @@ export default function NewItem() {
           />
         </label>
         <label className="block">
-          <span className="block text-sm text-slate-700">Location</span>
+          <span className="block text-sm text-slate-300">Location</span>
           <input
             className={inputCls}
             placeholder="A1, B3…"
@@ -176,13 +176,13 @@ export default function NewItem() {
       </div>
 
       {metaFields.length > 0 && (
-        <fieldset className="space-y-3 rounded-xl border border-slate-200 p-3">
-          <legend className="px-1 text-sm font-medium text-slate-700">
+        <fieldset className="space-y-3 surface p-3">
+          <legend className="px-1 text-sm font-medium text-slate-300">
             {itemTypeLabel(v.item_type)} details
           </legend>
           {metaFields.map((f) => (
             <label key={f.key} className="block">
-              <span className="block text-sm text-slate-700">{f.label}</span>
+              <span className="block text-sm text-slate-300">{f.label}</span>
               <input
                 className={inputCls}
                 type={f.type === 'date' ? 'date' : f.type === 'number' ? 'number' : 'text'}
@@ -195,7 +195,7 @@ export default function NewItem() {
         </fieldset>
       )}
 
-      {error && <p className="text-red-700 text-sm">{error}</p>}
+      {error && <p className="text-red-400 text-sm">{error}</p>}
 
       <div className="flex gap-2 pt-2">
         <button type="button" onClick={() => nav(-1)} className="tap-secondary flex-1">

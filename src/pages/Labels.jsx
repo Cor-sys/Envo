@@ -44,17 +44,17 @@ export default function Labels() {
         </button>
       </div>
 
-      <p className="text-sm text-slate-600 no-print">
+      <p className="text-sm text-slate-400 no-print">
         Items without a factory UPC need a printed QR label so staff can scan
         them. QR encodes the SKU.
       </p>
 
-      {error && <p className="text-red-700 text-sm no-print">{error}</p>}
-      {items === null && !error && <p className="text-slate-500 no-print">Loading…</p>}
+      {error && <p className="text-red-400 text-sm no-print">{error}</p>}
+      {items === null && !error && <p className="text-slate-400 no-print">Loading…</p>}
 
       {items && items.length === 0 && (
-        <div className="rounded-xl border border-dashed border-slate-300 p-6 text-center text-slate-600 no-print">
-          <p className="font-medium">Nothing to label.</p>
+        <div className="rounded-2xl border border-dashed border-slate-700 p-6 text-center text-slate-400 no-print">
+          <p className="font-medium text-slate-200">Nothing to label.</p>
           <p className="text-sm mt-1">Every item has a factory barcode.</p>
         </div>
       )}
@@ -65,14 +65,15 @@ export default function Labels() {
           <ul className="space-y-1 no-print">
             {items.map((it) => (
               <li key={it.id}>
-                <label className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white p-2 text-sm">
+                <label className="flex items-center gap-2 rounded-lg border border-slate-800 bg-slate-900 p-2 text-sm">
                   <input
                     type="checkbox"
                     checked={selected.has(it.id)}
                     onChange={() => toggle(it.id)}
+                    className="accent-sky-500"
                   />
-                  <span className="font-medium truncate">{it.name}</span>
-                  <span className="ml-auto text-xs text-slate-500 font-mono">
+                  <span className="font-medium text-slate-100 truncate">{it.name}</span>
+                  <span className="ml-auto text-xs text-slate-400 font-mono">
                     {it.sku}
                   </span>
                 </label>
