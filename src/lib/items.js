@@ -47,8 +47,12 @@ export function itemTypeLabel(value) {
   return ITEM_TYPES.find(t => t.value === value)?.label ?? value;
 }
 
+// Status priority for sorting — OUT items first (need attention now),
+// LOW second (need attention soon), OK at the bottom (no action).
+const STATUS_ORDER = { out: 0, low: 1, ok: 2 };
+
 export async function listItems({ search, itemType } = {}) {
-  let q = supabase.from('items_with_status').select('*').order('name');
+  let q = supabase.from('items_with_status').select('*');
   if (itemType) q = q.eq('item_type', itemType);
   const s = (search ?? '').trim();
   if (s) {
@@ -59,7 +63,14 @@ export async function listItems({ search, itemType } = {}) {
   }
   const { data, error } = await q;
   if (error) throw error;
-  return data;
+  // Sort attention-first, then alphabetically. Done client-side so the
+  // priority logic stays here and not coupled into the view definition.
+  return [...data].sort((a, b) => {
+    const pa = STATUS_ORDER[a.status] ?? 99;
+    const pb = STATUS_ORDER[b.status] ?? 99;
+    if (pa !== pb) return pa - pb;
+    return (a.name ?? '').localeCompare(b.name ?? '');
+  });
 }
 
 // Items missing a factory UPC barcode — they need a printed QR label so
@@ -112,6 +123,19 @@ export async function createItem(values) {
   const { data, error } = await supabase
     .from('items')
     .insert(values)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+// Update an existing item. Pass partial values — only changed columns
+// need to be in the payload.
+export async function updateItem(id, values) {
+  const { data, error } = await supabase
+    .from('items')
+    .update(values)
+    .eq('id', id)
     .select()
     .single();
   if (error) throw error;

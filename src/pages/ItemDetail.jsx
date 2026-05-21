@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   getItem,
   itemTypeLabel,
@@ -12,6 +12,8 @@ function humanizeKey(k) {
   return k.replaceAll('_', ' ');
 }
 
+const QTY_PRESETS = [1, 5, 10, 25];
+
 export default function ItemDetail() {
   const { id } = useParams();
   const nav = useNavigate();
@@ -20,6 +22,8 @@ export default function ItemDetail() {
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [adjustQty, setAdjustQty] = useState(1);
+  const [flash, setFlash] = useState(null);   // { direction, qty } for 1.5s after commit
 
   async function reload() {
     setError(null);
@@ -40,13 +44,34 @@ export default function ItemDetail() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  async function adjust(direction, qty) {
+  async function adjust(direction) {
+    if (!item || busy) return;
+    const qty = Math.max(1, Math.floor(Number(adjustQty) || 1));
+    if (direction === 'out' && item.qty < qty) {
+      setError(`Only ${item.qty} on hand — can't pull ${qty}.`);
+      return;
+    }
     setBusy(true);
     setError(null);
+    const prev = item;
+    // Optimistic — show the new qty immediately so the tap feels responsive.
+    const delta = direction === 'in' ? qty : -qty;
+    setItem({
+      ...item,
+      qty: item.qty + delta,
+      // Update derived fields locally so the status pill flips without
+      // waiting for the round-trip.
+      status: item.qty + delta <= 0 ? 'out'
+            : item.qty + delta <= item.threshold ? 'low'
+            : 'ok',
+    });
     try {
       await recordMovement({ itemId: id, direction, qty });
-      await reload();
+      setFlash({ direction, qty });
+      setTimeout(() => setFlash(null), 1500);
+      await reload();   // reconcile + load fresh tx
     } catch (e) {
+      setItem(prev);    // revert optimistic update
       setError(e.message);
     } finally {
       setBusy(false);
@@ -63,11 +88,22 @@ export default function ItemDetail() {
   if (md.watts) subParts.push(`${md.watts}W`);
   subParts.push(item.sku);
 
+  const outQty = Math.max(1, Math.floor(Number(adjustQty) || 1));
+  const outDisabled = busy || item.qty < outQty;
+
   return (
     <div className="p-3 space-y-4">
-      <button onClick={() => nav(-1)} className="text-sm text-slate-400 hover:text-slate-200 transition-colors">
-        ← Back
-      </button>
+      <div className="flex items-center justify-between">
+        <button onClick={() => nav(-1)} className="text-sm text-slate-400 hover:text-slate-200 transition-colors">
+          ← Back
+        </button>
+        <Link
+          to={`/items/${id}/edit`}
+          className="text-sm text-sky-400 hover:text-sky-300 transition-colors"
+        >
+          Edit
+        </Link>
+      </div>
 
       <div className="space-y-1">
         <div className="flex items-center justify-between">
@@ -85,31 +121,70 @@ export default function ItemDetail() {
         )}
       </div>
 
-      <div className="surface p-4">
-        <div className="flex items-center justify-between">
+      <div className="surface p-4 space-y-4 relative">
+        {flash && (
+          <div className="absolute -top-3 inset-x-3 rounded-lg bg-emerald-500/95 text-white text-xs font-medium px-3 py-1.5 text-center shadow-lg">
+            ✓ {flash.direction === 'in' ? '+' : '−'}{flash.qty} saved
+          </div>
+        )}
+
+        <div className="flex items-end justify-between">
           <div>
             <div className="text-xs uppercase text-slate-500 tracking-wide">On hand</div>
-            <div className="text-3xl font-semibold tabular-nums text-slate-100">{item.qty}</div>
-            <div className="text-xs text-slate-500">threshold {item.threshold}</div>
+            <div className="text-5xl font-semibold tabular-nums text-slate-100 leading-none">
+              {item.qty}
+            </div>
+            <div className="text-xs text-slate-500 mt-1">threshold {item.threshold}</div>
           </div>
-          <div className="flex flex-col gap-2">
+        </div>
+
+        <div className="space-y-2 pt-1 border-t border-slate-800">
+          <div className="text-xs uppercase text-slate-500 tracking-wide pt-2">Adjust by</div>
+          <div className="flex items-center gap-2">
+            <div className="flex gap-1">
+              {QTY_PRESETS.map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => setAdjustQty(n)}
+                  className={`shrink-0 rounded-lg px-2.5 py-1 text-sm tabular-nums transition-colors ${
+                    Number(adjustQty) === n
+                      ? 'bg-sky-500 text-white'
+                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                  }`}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+            <input
+              type="number"
+              min="1"
+              value={adjustQty}
+              onChange={(e) => setAdjustQty(e.target.value)}
+              className="w-20 rounded-lg border border-slate-700 bg-slate-900 px-2 py-1 text-sm tabular-nums"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
             <button
-              disabled={busy}
-              onClick={() => adjust('in', 1)}
-              className="tap-primary"
-            >
-              +1 in
-            </button>
-            <button
-              disabled={busy || item.qty < 1}
-              onClick={() => adjust('out', 1)}
+              disabled={outDisabled}
+              onClick={() => adjust('out')}
               className="tap-danger"
             >
-              −1 out
+              −{outQty} out
+            </button>
+            <button
+              disabled={busy}
+              onClick={() => adjust('in')}
+              className="tap-primary"
+            >
+              +{outQty} in
             </button>
           </div>
         </div>
-        {error && <p className="mt-3 text-red-400 text-sm">{error}</p>}
+
+        {error && <p className="text-red-400 text-sm">{error}</p>}
       </div>
 
       <section className="space-y-2">

@@ -5,6 +5,7 @@ import AuthGate from './components/AuthGate.jsx';
 import Inventory from './pages/Inventory.jsx';
 import NewItem from './pages/NewItem.jsx';
 import ItemDetail from './pages/ItemDetail.jsx';
+import EditItem from './pages/EditItem.jsx';
 import Labels from './pages/Labels.jsx';
 import Scan from './pages/Scan.jsx';
 
@@ -81,7 +82,8 @@ function AppShell() {
         <Routes>
           <Route path="/"            element={<Inventory />} />
           <Route path="/items/new"   element={<NewItem />} />
-          <Route path="/items/:id"   element={<ItemDetail />} />
+          <Route path="/items/:id"        element={<ItemDetail />} />
+          <Route path="/items/:id/edit"   element={<EditItem />} />
           <Route path="/scan"        element={<Scan />} />
           <Route path="/labels"      element={<Labels />} />
           <Route path="/reports"     element={<Placeholder title="Reports" />} />
