@@ -1,7 +1,16 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { getItem, recentTransactions, recordMovement } from '../lib/items.js';
+import {
+  getItem,
+  itemTypeLabel,
+  recentTransactions,
+  recordMovement,
+} from '../lib/items.js';
 import StatusPill from '../components/StatusPill.jsx';
+
+function humanizeKey(k) {
+  return k.replaceAll('_', ' ');
+}
 
 export default function ItemDetail() {
   const { id } = useParams();
@@ -48,6 +57,12 @@ export default function ItemDetail() {
   if (!item && loaded) return <div className="p-3 text-slate-500">Item not found.</div>;
   if (!item) return <div className="p-3 text-slate-500">Loading…</div>;
 
+  const md = item.metadata ?? {};
+  const subParts = [];
+  if (item.brand) subParts.push(item.brand);
+  if (md.watts) subParts.push(`${md.watts}W`);
+  subParts.push(item.sku);
+
   return (
     <div className="p-3 space-y-4">
       <button onClick={() => nav(-1)} className="text-sm text-slate-500">← Back</button>
@@ -57,11 +72,8 @@ export default function ItemDetail() {
           <h2 className="text-xl font-semibold">{item.name}</h2>
           <StatusPill status={item.status} />
         </div>
-        <div className="text-sm text-slate-600">
-          {item.brand && <>{item.brand} · </>}
-          {item.watts && <>{item.watts}W · </>}
-          {item.sku}
-        </div>
+        <div className="text-xs text-slate-400">{itemTypeLabel(item.item_type)}</div>
+        <div className="text-sm text-slate-600">{subParts.join(' · ')}</div>
         {item.needs_label && (
           <div className="text-xs text-amber-700">
             no factory barcode — needs printed QR label
@@ -99,14 +111,28 @@ export default function ItemDetail() {
       <section className="space-y-2">
         <h3 className="text-sm font-medium text-slate-700">Details</h3>
         <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1 text-sm">
-          <dt className="text-slate-500">Category</dt><dd>{item.category}</dd>
-          {item.base && (<><dt className="text-slate-500">Base</dt><dd>{item.base}</dd></>)}
-          {item.type && (<><dt className="text-slate-500">Type</dt><dd>{item.type}</dd></>)}
-          {item.model && (<><dt className="text-slate-500">Model</dt><dd>{item.model}</dd></>)}
-          {item.barcode && (
-            <><dt className="text-slate-500">Barcode</dt><dd className="font-mono text-xs">{item.barcode}</dd></>
+          <dt className="text-slate-500">Type</dt><dd>{itemTypeLabel(item.item_type)}</dd>
+          {item.category && (
+            <><dt className="text-slate-500">Category</dt><dd>{item.category}</dd></>
           )}
-          {item.location && (<><dt className="text-slate-500">Location</dt><dd>{item.location}</dd></>)}
+          {item.model && (
+            <><dt className="text-slate-500">Model</dt><dd>{item.model}</dd></>
+          )}
+          {item.barcode && (
+            <>
+              <dt className="text-slate-500">Barcode</dt>
+              <dd className="font-mono text-xs">{item.barcode}</dd>
+            </>
+          )}
+          {item.location_text && (
+            <><dt className="text-slate-500">Location</dt><dd>{item.location_text}</dd></>
+          )}
+          {Object.entries(md).map(([k, val]) => (
+            <Fragment key={k}>
+              <dt className="text-slate-500 capitalize">{humanizeKey(k)}</dt>
+              <dd>{String(val)}</dd>
+            </Fragment>
+          ))}
         </dl>
       </section>
 

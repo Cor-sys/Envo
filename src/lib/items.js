@@ -1,14 +1,55 @@
 import { supabase } from './supabase.js';
 
-export const CATEGORIES = [
-  'Linear/U-bent fluorescent',
-  'Compact fluorescent (CFL)',
-  'HID (mercury/metal halide/HPS)',
-  'Incandescent / LED / misc',
+// Item types are first-class top-level groupings. Adding a new one is a
+// zero-migration change: pick a new value and the database accepts it.
+export const ITEM_TYPES = [
+  { value: 'light_bulb', label: 'Light bulb' },
+  { value: 'tool',       label: 'Tool' },
+  { value: 'paint',      label: 'Paint' },
+  { value: 'chemical',   label: 'Chemical' },
+  { value: 'belt',       label: 'Belt' },
+  { value: 'supplies',   label: 'Supplies / other' },
 ];
 
-export async function listItems({ search } = {}) {
+// Per-type metadata field hints used by the New/Edit forms. Adding a field
+// here is zero-migration too — the values land in items.metadata (jsonb).
+export const METADATA_FIELDS_BY_TYPE = {
+  light_bulb: [
+    { key: 'watts',        label: 'Watts',           placeholder: 'e.g. 32 or ?' },
+    { key: 'base',         label: 'Base / fixture',  placeholder: 'e.g. G13, E26' },
+    { key: 'lumens',       label: 'Lumens',          type: 'number' },
+    { key: 'color_temp_k', label: 'Color temp (K)',  type: 'number', placeholder: '2700, 4000…' },
+  ],
+  tool: [
+    { key: 'serial_number', label: 'Serial number' },
+    { key: 'condition',     label: 'Condition',      placeholder: 'good / fair / poor' },
+    { key: 'battery_v',     label: 'Battery (V)',    type: 'number' },
+  ],
+  paint: [
+    { key: 'color_code',    label: 'Color code',     placeholder: 'e.g. SW7012' },
+    { key: 'sheen',         label: 'Sheen',          placeholder: 'matte / eggshell / semi-gloss / gloss' },
+    { key: 'size',          label: 'Size',           placeholder: 'quart / gallon / 5gal' },
+  ],
+  chemical: [
+    { key: 'hazard_class',  label: 'Hazard class',   placeholder: 'flammable / corrosive / toxic' },
+    { key: 'size',          label: 'Size',           placeholder: 'e.g. 32oz, 1 gal' },
+    { key: 'expires_on',    label: 'Expires on',     type: 'date' },
+  ],
+  belt: [
+    { key: 'length_in',       label: 'Length (in)',   type: 'number' },
+    { key: 'profile',         label: 'Profile',       placeholder: 'e.g. 4L, V-belt, timing' },
+    { key: 'compatible_with', label: 'Compatible with' },
+  ],
+  supplies: [],
+};
+
+export function itemTypeLabel(value) {
+  return ITEM_TYPES.find(t => t.value === value)?.label ?? value;
+}
+
+export async function listItems({ search, itemType } = {}) {
   let q = supabase.from('items_with_status').select('*').order('name');
+  if (itemType) q = q.eq('item_type', itemType);
   const s = (search ?? '').trim();
   if (s) {
     const pat = `%${s}%`;
