@@ -2,35 +2,52 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ---------------------------------------------------------------------------
+ * Stockroom theme: dark slate canvas, sky-blue accent. Lower glare and higher
+ * contrast for stockrooms with varied / dim lighting.
+ * Tokens centralized here so component classes stay small.
+ * --------------------------------------------------------------------------- */
 @layer base {
   html, body, #root { height: 100%; }
+  body { @apply bg-slate-950 text-slate-100; }
+
   /* iOS Safari: keep tap targets responsive, no double-tap zoom shenanigans. */
   button, [role='button'] { touch-action: manipulation; }
+
+  /* Form input defaults — Tailwind doesn't reset these. */
+  input, select, textarea {
+    @apply bg-slate-900 border-slate-700 text-slate-100 placeholder-slate-500;
+    color-scheme: dark;
+  }
 }
 
 @layer components {
   /* Mobile-first tap target: 44px minimum hit area. */
   .tap {
     @apply min-h-[44px] min-w-[44px] inline-flex items-center justify-center
-           rounded-lg px-3 py-2 font-medium select-none;
+           rounded-lg px-3 py-2 font-medium select-none transition-colors;
   }
-  .tap-primary  { @apply tap bg-slate-900 text-white active:bg-slate-700; }
-  .tap-secondary{ @apply tap bg-white text-slate-900 border border-slate-300 active:bg-slate-100; }
-  .tap-danger   { @apply tap bg-red-600 text-white active:bg-red-700; }
+  .tap-primary   { @apply tap bg-sky-500    text-white active:bg-sky-600; }
+  .tap-secondary { @apply tap bg-slate-800  text-slate-100 border border-slate-700 active:bg-slate-700; }
+  .tap-danger    { @apply tap bg-red-500    text-white active:bg-red-600; }
 
+  /* Card / surface — used for list rows, detail panels, the on-hand card. */
+  .surface       { @apply rounded-2xl border border-slate-800 bg-slate-900; }
+
+  /* Status pills — designed for dark bg with semi-transparent fills. */
   .pill {
     @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium;
   }
-  .pill-ok  { @apply pill bg-emerald-100 text-emerald-800; }
-  .pill-low { @apply pill bg-amber-100 text-amber-800; }
-  .pill-out { @apply pill bg-red-100 text-red-800; }
+  .pill-ok       { @apply pill bg-emerald-500/15 text-emerald-300; }
+  .pill-low      { @apply pill bg-amber-500/15  text-amber-300; }
+  .pill-out      { @apply pill bg-red-500/15    text-red-300; }
 }
 
-/* ---------------------------------------------------------------------
+/* ---------------------------------------------------------------------------
  * Printable QR label sheet.
- * Layout targets a US-letter page; cards are sized so a typical Avery 5160
- * 2.625"x1" sheet will still split cleanly via the browser's print preview.
- * --------------------------------------------------------------------- */
+ * Print is always on white paper, so these styles use absolute colors and
+ * ignore the dark theme.
+ * --------------------------------------------------------------------------- */
 @layer components {
   .label-sheet {
     display: grid;
@@ -43,10 +60,11 @@
     align-items: center;
     gap: 0.15in;
     padding: 0.1in;
-    border: 1px dashed #cbd5e1;       /* dashed cut-line on screen */
+    border: 1px dashed #475569;
     border-radius: 6px;
     break-inside: avoid;
     background: white;
+    color: #0f172a;
   }
   .label-meta { min-width: 0; flex: 1; line-height: 1.15; }
   .label-sku  { font-family: ui-monospace, SFMono-Regular, monospace; font-size: 11px; color: #475569; }
@@ -59,7 +77,7 @@
 @media print {
   /* Hide tab bar, header, search, etc. — only the label grid prints. */
   .no-print, header, nav { display: none !important; }
-  body { background: white; }
+  body { background: white !important; color: black !important; }
   .labels-page { padding: 0 !important; }
   .label-card { border: none; }
 }

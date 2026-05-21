@@ -34,19 +34,21 @@ export default function Login() {
     }
   }
 
-  const inputCls = 'mt-1 w-full rounded-lg border border-slate-300 px-3 py-2';
+  const inputCls = 'mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 placeholder-slate-500';
 
   return (
     <div className="mx-auto max-w-sm p-6 space-y-4">
-      <h1 className="text-2xl font-semibold">Stockroom</h1>
-      <p className="text-slate-600 text-sm">
+      <h1 className="text-2xl font-semibold tracking-tight">
+        <span className="text-sky-400">Stock</span>room
+      </h1>
+      <p className="text-slate-400 text-sm">
         {mode === 'signin' ? 'Sign in to continue.' : 'Create your staff account.'}
       </p>
 
       <form className="space-y-3" onSubmit={submit}>
         {mode === 'signup' && (
           <label className="block">
-            <span className="block text-sm text-slate-700">Name</span>
+            <span className="block text-sm text-slate-300">Name</span>
             <input
               className={inputCls}
               value={name}
@@ -57,7 +59,7 @@ export default function Login() {
           </label>
         )}
         <label className="block">
-          <span className="block text-sm text-slate-700">Email</span>
+          <span className="block text-sm text-slate-300">Email</span>
           <input
             className={inputCls}
             type="email"
@@ -68,7 +70,7 @@ export default function Login() {
           />
         </label>
         <label className="block">
-          <span className="block text-sm text-slate-700">Password</span>
+          <span className="block text-sm text-slate-300">Password</span>
           <input
             className={inputCls}
             type="password"
@@ -80,8 +82,8 @@ export default function Login() {
           />
         </label>
 
-        {error && <p className="text-red-700 text-sm">{error}</p>}
-        {info && <p className="text-emerald-700 text-sm">{info}</p>}
+        {error && <p className="text-red-400 text-sm">{error}</p>}
+        {info && <p className="text-emerald-300 text-sm">{info}</p>}
 
         <button className="tap-primary w-full" type="submit" disabled={busy}>
           {busy ? 'Working…' : mode === 'signin' ? 'Sign in' : 'Create account'}
