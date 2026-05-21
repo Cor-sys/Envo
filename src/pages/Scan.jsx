@@ -24,24 +24,32 @@ export default function Scan() {
   const [direction, setDirection]   = useState('out');   // default: pulling stock
   const [item, setItem]             = useState(null);
   const [error, setError]           = useState(null);
-  const [unsupported, setUnsupported] = useState(false);
   const [permDenied, setPermDenied] = useState(false);
+  const [scannerKind, setScannerKind] = useState(null);  // 'native' | 'zxing' | null
   const [manualCode, setManualCode] = useState('');
   const [busy, setBusy]             = useState(false);
   const [flash, setFlash]           = useState(null);    // { name, direction } shown for 1.5s
 
-  // Camera + barcode detector lifecycle
+  // Camera + barcode detector lifecycle.
+  // Path A: native BarcodeDetector (Chrome / Edge on Android + desktop).
+  // Path B: @zxing/browser fallback (Safari / iOS — dynamically imported so
+  //         Chrome users don't pay the ~60KB gzipped cost).
   useEffect(() => {
-    if (!('BarcodeDetector' in window)) {
-      setUnsupported(true);
-      return;
-    }
-
     let stopped = false;
-    let detector = null;
     let raf = 0;
+    let zxingReader = null;            // path B handle
     let lastCode = null;
     let lastCodeAt = 0;
+
+    function maybeHandle(code) {
+      if (!code) return;
+      const now = Date.now();
+      if (code !== lastCode || now - lastCodeAt > DEBOUNCE_MS) {
+        lastCode = code;
+        lastCodeAt = now;
+        lookup(code);
+      }
+    }
 
     async function init() {
       try {
@@ -59,33 +67,50 @@ export default function Scan() {
         v.setAttribute('playsinline', '');
         await v.play();
 
-        detector = new window.BarcodeDetector({ formats: BARCODE_FORMATS });
-
-        const tick = async () => {
-          if (stopped) return;
-          if (v.readyState >= 2) {
-            try {
-              const codes = await detector.detect(v);
-              if (codes.length > 0) {
-                const code = codes[0].rawValue;
-                const now = Date.now();
-                if (code !== lastCode || now - lastCodeAt > DEBOUNCE_MS) {
-                  lastCode = code;
-                  lastCodeAt = now;
-                  lookup(code);
-                }
-              }
-            } catch {
-              /* transient detection errors — ignore */
-            }
+        let nativeDetector = null;
+        if ('BarcodeDetector' in window) {
+          try {
+            nativeDetector = new window.BarcodeDetector({ formats: BARCODE_FORMATS });
+          } catch {
+            // Some browsers expose the constructor but throw on unsupported
+            // formats — fall through to ZXing.
+            nativeDetector = null;
           }
+        }
+
+        if (nativeDetector) {
+          setScannerKind('native');
+          const tick = async () => {
+            if (stopped) return;
+            if (v.readyState >= 2) {
+              try {
+                const codes = await nativeDetector.detect(v);
+                if (codes.length > 0) maybeHandle(codes[0].rawValue);
+              } catch { /* transient — ignore */ }
+            }
+            raf = requestAnimationFrame(tick);
+          };
           raf = requestAnimationFrame(tick);
-        };
-        raf = requestAnimationFrame(tick);
+          return;
+        }
+
+        // Fallback: @zxing/browser. Dynamically imported so Chrome users
+        // don't pay the ~60KB gzipped cost for a path they never use.
+        const { BrowserMultiFormatReader } = await import('@zxing/browser');
+        if (stopped) return;
+        zxingReader = new BrowserMultiFormatReader();
+        setScannerKind('zxing');
+        // The callback fires on every recognized symbol; errors are passed
+        // too but most are just "no code in frame", which we ignore.
+        await zxingReader.decodeFromVideoElement(v, (result) => {
+          if (result) maybeHandle(result.getText());
+        });
       } catch (e) {
         if (stopped) return;
         if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
           setPermDenied(true);
+        } else if (e.name === 'NotFoundError' || e.name === 'OverconstrainedError') {
+          setError('No camera found on this device. Use manual entry below.');
         } else {
           setError(e.message || String(e));
         }
@@ -96,6 +121,9 @@ export default function Scan() {
     return () => {
       stopped = true;
       if (raf) cancelAnimationFrame(raf);
+      if (zxingReader) {
+        try { zxingReader.reset?.(); } catch { /* noop */ }
+      }
       const v = videoRef.current;
       const stream = v?.srcObject;
       if (stream) {
@@ -190,13 +218,6 @@ export default function Scan() {
         )}
       </div>
 
-      {unsupported && (
-        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-200">
-          This browser doesn&rsquo;t support live barcode scanning. Type the
-          factory UPC or our SKU (e.g. <code className="font-mono text-amber-100">STK0001</code>) in
-          the field below.
-        </div>
-      )}
       {permDenied && (
         <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
           Camera permission denied. Allow camera access in your browser&rsquo;s
