@@ -5,6 +5,7 @@ import AuthGate from './components/AuthGate.jsx';
 import Inventory from './pages/Inventory.jsx';
 import NewItem from './pages/NewItem.jsx';
 import ItemDetail from './pages/ItemDetail.jsx';
+import Labels from './pages/Labels.jsx';
 
 function SetupNeeded() {
   return (
@@ -74,7 +75,7 @@ function AppShell() {
           <Route path="/items/new"   element={<NewItem />} />
           <Route path="/items/:id"   element={<ItemDetail />} />
           <Route path="/scan"        element={<Placeholder title="Scan In / Out" />} />
-          <Route path="/labels"      element={<Placeholder title="Labels" />} />
+          <Route path="/labels"      element={<Labels />} />
           <Route path="/reports"     element={<Placeholder title="Reports" />} />
         </Routes>
       </main>
