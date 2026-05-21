@@ -80,4 +80,10 @@
   body { background: white !important; color: black !important; }
   .labels-page { padding: 0 !important; }
   .label-card { border: none; }
+
+  /* Reports: keep section headers + tables together when possible. */
+  .reports-page    { padding: 0 !important; color: #0f172a !important; }
+  .report-section  { break-inside: avoid; page-break-inside: avoid; }
+  .reports-page table th,
+  .reports-page table td { padding: 4px 8px; }
 }
