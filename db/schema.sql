@@ -13,7 +13,8 @@ create extension if not exists pgcrypto;  -- gen_random_uuid()
 create sequence if not exists stk_seq start 1 minvalue 1;
 
 create or replace function next_stk_sku() returns text
-language sql volatile as $$
+language sql volatile
+set search_path = public, pg_temp as $$
   select 'STK' || lpad(nextval('stk_seq')::text, 4, '0');
 $$;
 
@@ -44,7 +45,8 @@ create index if not exists items_location_idx on items (location);
 create index if not exists items_no_barcode_idx on items (id) where barcode is null;
 
 create or replace function set_updated_at() returns trigger
-language plpgsql as $$
+language plpgsql
+set search_path = public, pg_temp as $$
 begin
   new.updated_at := now();
   return new;
@@ -72,10 +74,13 @@ create table if not exists transactions (
 
 create index if not exists transactions_item_idx     on transactions (item_id, occurred_at desc);
 create index if not exists transactions_occurred_idx on transactions (occurred_at desc);
+-- Cover the FK to auth.users so "who logged this?" lookups stay indexed.
+create index if not exists transactions_staff_idx    on transactions (staff_id);
 
 -- Enforce immutability: no UPDATE or DELETE on the activity log.
 create or replace function transactions_immutable() returns trigger
-language plpgsql as $$
+language plpgsql
+set search_path = public, pg_temp as $$
 begin
   raise exception 'transactions are immutable (use a compensating row instead)';
 end;
@@ -147,15 +152,18 @@ begin
 end;
 $$;
 
-revoke all on function record_movement(uuid, text, integer, text) from public;
-grant execute on function record_movement(uuid, text, integer, text) to authenticated;
+revoke all     on function record_movement(uuid, text, integer, text) from public;
+revoke execute on function record_movement(uuid, text, integer, text) from anon;
+grant  execute on function record_movement(uuid, text, integer, text) to authenticated;
 
 -- ---------------------------------------------------------------------------
 -- Convenience views
 -- ---------------------------------------------------------------------------
 
 -- status: derived per §7. OUT if qty<=0; LOW if qty<=threshold; else OK.
-create or replace view items_with_status as
+-- security_invoker = true so the view applies the caller's RLS on items,
+-- not the view owner's (default Postgres behavior leaks past RLS otherwise).
+create or replace view items_with_status with (security_invoker = true) as
   select i.*,
          case
            when i.qty <= 0           then 'out'
@@ -167,7 +175,7 @@ create or replace view items_with_status as
 
 -- Reorder list: every non-OK item with a suggested quantity that brings it up
 -- to threshold. (Box-size rounding is a v1.1 concern — see BRIEF.md §14.)
-create or replace view reorder_list as
+create or replace view reorder_list with (security_invoker = true) as
   select i.id,
          i.sku,
          i.name,
@@ -187,6 +195,10 @@ create or replace view reorder_list as
 -- v1: everyone signed in can read and edit (§3 — flat staff role). Admin/staff
 -- split is a future change; the policies are split per-action so we can tighten
 -- write/delete later without touching read.
+--
+-- Supabase's linter will flag insert/update/delete policies below as "always
+-- true" — that is intentional for v1. When we introduce roles, replace each
+-- `true` with a check against an `is_admin` or `staff_role` column.
 -- ---------------------------------------------------------------------------
 alter table items        enable row level security;
 alter table transactions enable row level security;
@@ -205,8 +217,10 @@ drop policy if exists transactions_insert on transactions;
 create policy transactions_select on transactions for select to authenticated using (true);
 -- Direct inserts are allowed (for back-dated reconciliation) but the normal
 -- write path is the record_movement() RPC.
+-- (select auth.uid()) instead of bare auth.uid() so Postgres evaluates it
+-- once per statement rather than once per row.
 create policy transactions_insert on transactions for insert to authenticated
-  with check (staff_id is null or staff_id = auth.uid());
+  with check (staff_id is null or staff_id = (select auth.uid()));
 
 -- Views inherit RLS from their base tables, so no extra policy needed for
 -- items_with_status / reorder_list.
