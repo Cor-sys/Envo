@@ -1,0 +1,35 @@
+# Code owners for the Envo / Stockroom repo.
+# Lines below the catch-all are more specific and take precedence.
+# See https://docs.github.com/en/repositories/managing-your-repositories-settings-and-customizations/customizing-your-repository/about-code-owners
+#
+# Why this exists: Ryder (junior dev, frontend visual changes only) has Write
+# access to push branches and open PRs, but branch protection on `main`
+# requires review from CODEOWNERS for the paths listed below. Anything
+# touching those paths needs StoveGodCooks's approval before merge.
+
+# Default owner for everything not matched below.
+*                           @StoveGodCooks
+
+# Backend / database — authoritative on schema, RLS, RPCs.
+/db/**                      @StoveGodCooks
+
+# Infrastructure / build / deploy config.
+/wrangler.jsonc             @StoveGodCooks
+/vite.config.js             @StoveGodCooks
+/package.json               @StoveGodCooks
+/package-lock.json          @StoveGodCooks
+/.github/**                 @StoveGodCooks
+
+# Core libs — the Supabase client, auth flow, and data layer are sensitive.
+/src/lib/supabase.js        @StoveGodCooks
+/src/lib/auth.jsx           @StoveGodCooks
+/src/lib/items.js           @StoveGodCooks
+
+# Top-level docs that describe scope or process.
+/BRIEF.md                   @StoveGodCooks
+/README.md                  @StoveGodCooks
+
+# Frontend visual layer is intentionally NOT pinned to an owner here, so PRs
+# from Ryder that only touch components/pages/styles don't require backend
+# review. Branch protection still requires *some* approval — that's the
+# floor, but specifically the CODEOWNERS gate only fires on the paths above.
