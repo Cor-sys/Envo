@@ -1,5 +1,10 @@
 import { NavLink, Route, Routes } from 'react-router-dom';
 import { isConfigured } from './lib/supabase.js';
+import { signOut, useSession } from './lib/auth.jsx';
+import AuthGate from './components/AuthGate.jsx';
+import Inventory from './pages/Inventory.jsx';
+import NewItem from './pages/NewItem.jsx';
+import ItemDetail from './pages/ItemDetail.jsx';
 
 function SetupNeeded() {
   return (
@@ -17,7 +22,7 @@ function SetupNeeded() {
         <li>
           Copy <code className="rounded bg-slate-200 px-1">.env.example</code> to{' '}
           <code className="rounded bg-slate-200 px-1">.env.local</code> and fill
-          in the project URL and anon key.
+          in the project URL and anon/publishable key.
         </li>
         <li>Restart <code className="rounded bg-slate-200 px-1">npm run dev</code>.</li>
       </ol>
@@ -43,25 +48,37 @@ const tabs = [
   { to: '/reports', label: 'Reports' },
 ];
 
-export default function App() {
-  if (!isConfigured) return <SetupNeeded />;
+function AppShell() {
+  const { session } = useSession();
+  const me =
+    session?.user?.user_metadata?.full_name || session?.user?.email || '';
 
   return (
     <div className="flex h-full flex-col">
-      <header className="border-b border-slate-200 bg-white px-4 py-3">
+      <header className="border-b border-slate-200 bg-white px-4 py-3 flex items-center justify-between">
         <h1 className="text-lg font-semibold">Stockroom</h1>
+        <div className="flex items-center gap-3 text-sm text-slate-600">
+          <span className="hidden sm:inline truncate max-w-[12rem]">{me}</span>
+          <button
+            onClick={() => signOut()}
+            className="text-slate-500 hover:text-slate-900"
+          >
+            Sign out
+          </button>
+        </div>
       </header>
 
       <main className="flex-1 overflow-y-auto pb-20">
         <Routes>
-          <Route path="/"        element={<Placeholder title="Inventory" />} />
-          <Route path="/scan"    element={<Placeholder title="Scan In / Out" />} />
-          <Route path="/labels"  element={<Placeholder title="Labels" />} />
-          <Route path="/reports" element={<Placeholder title="Reports" />} />
+          <Route path="/"            element={<Inventory />} />
+          <Route path="/items/new"   element={<NewItem />} />
+          <Route path="/items/:id"   element={<ItemDetail />} />
+          <Route path="/scan"        element={<Placeholder title="Scan In / Out" />} />
+          <Route path="/labels"      element={<Placeholder title="Labels" />} />
+          <Route path="/reports"     element={<Placeholder title="Reports" />} />
         </Routes>
       </main>
 
-      {/* Bottom tab bar — thumb-reach on phones. */}
       <nav className="fixed inset-x-0 bottom-0 border-t border-slate-200 bg-white">
         <ul className="mx-auto grid max-w-screen-sm grid-cols-4">
           {tabs.map((t) => (
@@ -82,5 +99,14 @@ export default function App() {
         </ul>
       </nav>
     </div>
+  );
+}
+
+export default function App() {
+  if (!isConfigured) return <SetupNeeded />;
+  return (
+    <AuthGate>
+      <AppShell />
+    </AuthGate>
   );
 }
