@@ -153,11 +153,25 @@ export default function Scan() {
     setBusy(true);
     setError(null);
     try {
-      await recordMovement({ itemId: item.id, direction, qty: 1 });
-      setFlash({ name: item.name, direction });
-      // Refresh item so the on-screen qty/status update
-      const refreshed = await getItem(item.id);
-      setItem(refreshed);
+      const result = await recordMovement({ itemId: item.id, direction, qty: 1 });
+      const queued = result?.queued === true;
+      setFlash({ name: item.name, direction, queued });
+      if (queued) {
+        // Server hasn't seen the change yet — apply the delta locally so the
+        // next scan operates on the updated qty. Drainer reconciles later.
+        const delta = direction === 'in' ? 1 : -1;
+        const nextQty = Math.max(0, item.qty + delta);
+        setItem({
+          ...item,
+          qty: nextQty,
+          status: nextQty <= 0 ? 'out'
+                : nextQty <= item.threshold ? 'low'
+                : 'ok',
+        });
+      } else {
+        const refreshed = await getItem(item.id);
+        setItem(refreshed);
+      }
       setTimeout(() => setFlash(null), 1500);
     } catch (e) {
       setError(e.message);
@@ -212,8 +226,11 @@ export default function Scan() {
         {/* reticle */}
         <div className="pointer-events-none absolute inset-6 rounded-xl border-2 border-white/80 shadow-[0_0_0_9999px_rgba(2,6,23,0.55)]" />
         {flash && (
-          <div className="absolute inset-x-0 top-0 bg-emerald-500/95 text-white px-3 py-2 text-sm font-medium text-center">
+          <div className={`absolute inset-x-0 top-0 text-white px-3 py-2 text-sm font-medium text-center ${
+            flash.queued ? 'bg-amber-500/95' : 'bg-emerald-500/95'
+          }`}>
             ✓ {flash.direction === 'in' ? '+1' : '−1'}: {flash.name}
+            {flash.queued && ' (queued)'}
           </div>
         )}
       </div>

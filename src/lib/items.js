@@ -1,4 +1,5 @@
 import { supabase } from './supabase.js';
+import { enqueueMovement } from './offlineQueue.js';
 
 // Item types are first-class top-level groupings. Adding a new one is a
 // zero-migration change: pick a new value and the database accepts it.
@@ -143,15 +144,50 @@ export async function updateItem(id, values) {
 }
 
 // Atomic check-in / check-out. Direction: 'in' | 'out'. Qty must be positive.
+//
+// Offline-aware: if the device is offline (or the call fails with a network
+// error), the movement is queued in IndexedDB and synced when connectivity
+// returns. The idempotency_key on the RPC side guards against double-apply
+// during retry, so a queued movement is safe to send even if a previous
+// attempt's response was lost.
+//
+// Returns one of:
+//   { queued: true,  idempotencyKey }  — saved locally, will sync later
+//   <transaction row>                  — applied on the server immediately
 export async function recordMovement({ itemId, direction, qty, note = null }) {
-  const { data, error } = await supabase.rpc('record_movement', {
-    p_item_id: itemId,
-    p_direction: direction,
-    p_qty: qty,
-    p_note: note,
-  });
-  if (error) throw error;
-  return data;
+  const idempotencyKey = (typeof crypto !== 'undefined' && crypto.randomUUID)
+    ? crypto.randomUUID()
+    : null;
+
+  const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
+  if (offline) {
+    await enqueueMovement({ itemId, direction, qty, note, idempotencyKey });
+    return { queued: true, idempotencyKey };
+  }
+
+  try {
+    const { data, error } = await supabase.rpc('record_movement', {
+      p_item_id: itemId,
+      p_direction: direction,
+      p_qty: qty,
+      p_note: note,
+      p_idempotency_key: idempotencyKey,
+    });
+    if (error) throw error;
+    return data;
+  } catch (e) {
+    // Network failure: enqueue and let the drainer retry. Anything with a
+    // Postgres error code is a real server-side reject (negative qty, item
+    // missing, etc.) and must surface to the caller — those don't get queued.
+    const isNetwork =
+      !e?.code &&
+      /fetch|network|failed to|timeout|offline/i.test(e?.message ?? '');
+    if (isNetwork) {
+      await enqueueMovement({ itemId, direction, qty, note, idempotencyKey });
+      return { queued: true, idempotencyKey };
+    }
+    throw e;
+  }
 }
 
 export async function recentTransactions(itemId, limit = 10) {

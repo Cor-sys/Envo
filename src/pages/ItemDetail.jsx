@@ -66,10 +66,14 @@ export default function ItemDetail() {
             : 'ok',
     });
     try {
-      await recordMovement({ itemId: id, direction, qty });
-      setFlash({ direction, qty });
+      const result = await recordMovement({ itemId: id, direction, qty });
+      const queued = result?.queued === true;
+      setFlash({ direction, qty, queued });
       setTimeout(() => setFlash(null), 1500);
-      await reload();   // reconcile + load fresh tx
+      // When queued, the server hasn't seen the change yet — reloading would
+      // overwrite the optimistic qty with the stale server value. Keep the
+      // optimistic state and let the queue drainer reconcile later.
+      if (!queued) await reload();
     } catch (e) {
       setItem(prev);    // revert optimistic update
       setError(e.message);
@@ -123,8 +127,11 @@ export default function ItemDetail() {
 
       <div className="surface p-4 space-y-4 relative">
         {flash && (
-          <div className="absolute -top-3 inset-x-3 rounded-lg bg-emerald-500/95 text-white text-xs font-medium px-3 py-1.5 text-center shadow-lg">
-            ✓ {flash.direction === 'in' ? '+' : '−'}{flash.qty} saved
+          <div className={`absolute -top-3 inset-x-3 rounded-lg text-white text-xs font-medium px-3 py-1.5 text-center shadow-lg ${
+            flash.queued ? 'bg-amber-500/95' : 'bg-emerald-500/95'
+          }`}>
+            ✓ {flash.direction === 'in' ? '+' : '−'}{flash.qty}
+            {flash.queued ? ' queued (offline) — will sync' : ' saved'}
           </div>
         )}
 

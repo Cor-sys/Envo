@@ -1,13 +1,17 @@
+import { useEffect } from 'react';
 import { NavLink, Route, Routes } from 'react-router-dom';
-import { isConfigured, isDemoMode } from './lib/supabase.js';
+import { isConfigured, isDemoMode, supabase } from './lib/supabase.js';
 import { signOut, useSession } from './lib/auth.jsx';
+import { installQueueDrainer } from './lib/offlineQueue.js';
 import AuthGate from './components/AuthGate.jsx';
+import PendingBadge from './components/PendingBadge.jsx';
 import Inventory from './pages/Inventory.jsx';
 import NewItem from './pages/NewItem.jsx';
 import ItemDetail from './pages/ItemDetail.jsx';
 import EditItem from './pages/EditItem.jsx';
 import Labels from './pages/Labels.jsx';
 import Scan from './pages/Scan.jsx';
+import Reports from './pages/Reports.jsx';
 
 function SetupNeeded() {
   return (
@@ -33,17 +37,6 @@ function SetupNeeded() {
   );
 }
 
-function Placeholder({ title }) {
-  return (
-    <div className="p-4">
-      <h2 className="text-xl font-semibold">{title}</h2>
-      <p className="mt-2 text-slate-400 text-sm">
-        Screen not built yet — see BRIEF.md §13 for build order.
-      </p>
-    </div>
-  );
-}
-
 const tabs = [
   { to: '/',        label: 'Inventory' },
   { to: '/scan',    label: 'Scan' },
@@ -55,6 +48,12 @@ function AppShell() {
   const { session } = useSession();
   const me =
     session?.user?.user_metadata?.full_name || session?.user?.email || '';
+
+  // Install the offline-queue drainer once we have a live supabase client.
+  // It listens for `online` and ticks every 60s to flush pending movements.
+  useEffect(() => {
+    installQueueDrainer(supabase);
+  }, []);
 
   return (
     <div className="flex h-full flex-col bg-slate-950">
@@ -68,6 +67,7 @@ function AppShell() {
           <span className="text-sky-400">Stock</span>room
         </h1>
         <div className="flex items-center gap-3 text-sm text-slate-400">
+          <PendingBadge />
           <span className="hidden sm:inline truncate max-w-[12rem]">{me}</span>
           <button
             onClick={() => signOut()}
@@ -86,7 +86,7 @@ function AppShell() {
           <Route path="/items/:id/edit"   element={<EditItem />} />
           <Route path="/scan"        element={<Scan />} />
           <Route path="/labels"      element={<Labels />} />
-          <Route path="/reports"     element={<Placeholder title="Reports" />} />
+          <Route path="/reports"     element={<Reports />} />
         </Routes>
       </main>
 
