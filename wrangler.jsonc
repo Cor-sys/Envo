@@ -4,7 +4,7 @@
   // it as a static SPA, falling back to index.html for any unknown path so
   // React Router can handle nested routes like /items/<id>.
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "envo",
+  "name": "stockroom",
   "compatibility_date": "2026-05-21",
   "assets": {
     "directory": "./dist",
