@@ -1,0 +1,3 @@
+# SPA routing: serve index.html for any path so React Router can handle it.
+# Without this, refreshing /items/abc-123 in the browser 404s on Cloudflare Pages.
+/*    /index.html   200
