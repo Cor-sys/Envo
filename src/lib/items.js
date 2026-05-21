@@ -85,6 +85,29 @@ export async function getItem(id) {
   return data;
 }
 
+// Look up an item by scanned code. Order matters per BRIEF section 7:
+// exact factory UPC match -> exact SKU match. Returns null if neither hits.
+export async function lookupItemByCode(code) {
+  const trimmed = (code ?? '').trim();
+  if (!trimmed) return null;
+
+  const byBarcode = await supabase
+    .from('items_with_status')
+    .select('*')
+    .eq('barcode', trimmed)
+    .maybeSingle();
+  if (byBarcode.error) throw byBarcode.error;
+  if (byBarcode.data) return byBarcode.data;
+
+  const bySku = await supabase
+    .from('items_with_status')
+    .select('*')
+    .eq('sku', trimmed)
+    .maybeSingle();
+  if (bySku.error) throw bySku.error;
+  return bySku.data ?? null;
+}
+
 export async function createItem(values) {
   const { data, error } = await supabase
     .from('items')
