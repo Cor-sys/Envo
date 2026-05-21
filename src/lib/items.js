@@ -62,6 +62,19 @@ export async function listItems({ search, itemType } = {}) {
   return data;
 }
 
+// Items missing a factory UPC barcode — they need a printed QR label so
+// staff can scan them in/out.
+export async function listItemsNeedingLabel() {
+  const { data, error } = await supabase
+    .from('items_with_status')
+    .select('id, sku, name, brand, item_type, category, location_text, metadata')
+    .is('barcode', null)
+    .order('item_type')
+    .order('name');
+  if (error) throw error;
+  return data;
+}
+
 export async function getItem(id) {
   const { data, error } = await supabase
     .from('items_with_status')

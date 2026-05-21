@@ -25,3 +25,41 @@
   .pill-low { @apply pill bg-amber-100 text-amber-800; }
   .pill-out { @apply pill bg-red-100 text-red-800; }
 }
+
+/* ---------------------------------------------------------------------
+ * Printable QR label sheet.
+ * Layout targets a US-letter page; cards are sized so a typical Avery 5160
+ * 2.625"x1" sheet will still split cleanly via the browser's print preview.
+ * --------------------------------------------------------------------- */
+@layer components {
+  .label-sheet {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(2.6in, 1fr));
+    gap: 0.15in;
+    padding: 0.25in 0;
+  }
+  .label-card {
+    display: flex;
+    align-items: center;
+    gap: 0.15in;
+    padding: 0.1in;
+    border: 1px dashed #cbd5e1;       /* dashed cut-line on screen */
+    border-radius: 6px;
+    break-inside: avoid;
+    background: white;
+  }
+  .label-meta { min-width: 0; flex: 1; line-height: 1.15; }
+  .label-sku  { font-family: ui-monospace, SFMono-Regular, monospace; font-size: 11px; color: #475569; }
+  .label-name { font-size: 13px; font-weight: 600; color: #0f172a;
+                white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .label-sub  { font-size: 10px; color: #64748b; margin-top: 1px; }
+  .label-type { font-size: 9px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 2px; }
+}
+
+@media print {
+  /* Hide tab bar, header, search, etc. — only the label grid prints. */
+  .no-print, header, nav { display: none !important; }
+  body { background: white; }
+  .labels-page { padding: 0 !important; }
+  .label-card { border: none; }
+}
