@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ITEM_TYPES, itemTypeLabel, listItems } from '../lib/items.js';
 import StatusPill from '../components/StatusPill.jsx';
@@ -6,7 +6,8 @@ import StatusPill from '../components/StatusPill.jsx';
 export default function Inventory() {
   const [items, setItems] = useState(null);
   const [search, setSearch] = useState('');
-  const [typeFilter, setTypeFilter] = useState(''); // '' = all
+  const [typeFilter, setTypeFilter] = useState('');
+  const [attentionOnly, setAttentionOnly] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -18,6 +19,26 @@ export default function Inventory() {
     return () => { cancelled = true; };
   }, [search, typeFilter]);
 
+  const counts = useMemo(() => {
+    if (!items) return { out: 0, low: 0, total: 0 };
+    return items.reduce(
+      (acc, it) => {
+        acc.total++;
+        if (it.status === 'out') acc.out++;
+        else if (it.status === 'low') acc.low++;
+        return acc;
+      },
+      { out: 0, low: 0, total: 0 },
+    );
+  }, [items]);
+
+  const visible = useMemo(() => {
+    if (!items) return null;
+    return attentionOnly
+      ? items.filter((it) => it.status !== 'ok')
+      : items;
+  }, [items, attentionOnly]);
+
   function pillCls(active) {
     return `shrink-0 rounded-full px-3 py-1 text-xs transition-colors ${
       active
@@ -25,6 +46,8 @@ export default function Inventory() {
         : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
     }`;
   }
+
+  const needsAttention = counts.out + counts.low;
 
   return (
     <div className="space-y-3 p-3">
@@ -37,6 +60,34 @@ export default function Inventory() {
         />
         <Link to="/items/new" className="tap-primary">+ Item</Link>
       </div>
+
+      {needsAttention > 0 && (
+        <button
+          type="button"
+          onClick={() => setAttentionOnly((v) => !v)}
+          className={`w-full rounded-2xl border p-3 text-left transition-colors ${
+            attentionOnly
+              ? 'border-amber-500/50 bg-amber-500/10'
+              : 'border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/10'
+          }`}
+        >
+          <div className="flex items-center justify-between gap-2">
+            <div className="text-sm">
+              <span className="font-medium text-amber-200">
+                {counts.out > 0 && (<>{counts.out} OUT </>)}
+                {counts.out > 0 && counts.low > 0 && (<span className="text-amber-300/60">· </span>)}
+                {counts.low > 0 && (<>{counts.low} LOW</>)}
+              </span>
+              <span className="text-amber-300/70 ml-2">
+                {attentionOnly ? '— showing attention items only' : '— tap to focus'}
+              </span>
+            </div>
+            <span className="text-xs text-amber-300/70 shrink-0">
+              {attentionOnly ? 'show all' : 'focus'}
+            </span>
+          </div>
+        </button>
+      )}
 
       <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-3 px-3">
         <button type="button" onClick={() => setTypeFilter('')} className={pillCls(typeFilter === '')}>
@@ -67,9 +118,16 @@ export default function Inventory() {
         </div>
       )}
 
-      {items && items.length > 0 && (
+      {items && items.length > 0 && visible.length === 0 && (
+        <div className="rounded-2xl border border-dashed border-slate-700 p-6 text-center text-slate-400">
+          <p className="font-medium text-slate-200">Nothing needs attention.</p>
+          <p className="text-sm mt-1">Tap the banner above to see all items.</p>
+        </div>
+      )}
+
+      {visible && visible.length > 0 && (
         <ul className="space-y-2">
-          {items.map((it) => {
+          {visible.map((it) => {
             const md = it.metadata ?? {};
             const subParts = [];
             if (it.brand) subParts.push(it.brand);
