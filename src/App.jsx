@@ -1,5 +1,5 @@
 import { NavLink, Route, Routes } from 'react-router-dom';
-import { isConfigured } from './lib/supabase.js';
+import { isConfigured, isDemoMode } from './lib/supabase.js';
 import { signOut, useSession } from './lib/auth.jsx';
 import AuthGate from './components/AuthGate.jsx';
 import Inventory from './pages/Inventory.jsx';
@@ -56,6 +56,11 @@ function AppShell() {
 
   return (
     <div className="flex h-full flex-col">
+      {isDemoMode && (
+        <div className="bg-amber-100 text-amber-900 text-[11px] font-medium text-center py-1 px-3 border-b border-amber-200">
+          Demo mode — all data is fake and changes don&rsquo;t persist.
+        </div>
+      )}
       <header className="border-b border-slate-200 bg-white px-4 py-3 flex items-center justify-between">
         <h1 className="text-lg font-semibold">Stockroom</h1>
         <div className="flex items-center gap-3 text-sm text-slate-600">
