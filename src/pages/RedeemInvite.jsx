@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { redeemInvite } from '../lib/auth.jsx';
+import ErrorBanner from '../components/ErrorBanner.jsx';
 
 // Public page (no auth required) that takes a one-time invite code, lets the
 // invitee pick a username + password, and creates their account.
@@ -111,7 +112,7 @@ export default function RedeemInvite() {
           />
         </label>
 
-        {error && <p className="text-red-300 text-sm">{error}</p>}
+        <ErrorBanner message={error} onDismiss={() => setError(null)} />
 
         <button className="tap-primary w-full" type="submit" disabled={busy}>
           {busy ? 'Creating account…' : 'Create account'}

@@ -12,6 +12,8 @@ import { photoUrl } from '../lib/photos.js';
 import { success as hapticSuccess, error as hapticError, tap as hapticTap } from '../lib/haptics.js';
 import StatusPill from '../components/StatusPill.jsx';
 import OrderButton from '../components/OrderButton.jsx';
+import EmptyState from '../components/EmptyState.jsx';
+import ErrorBanner from '../components/ErrorBanner.jsx';
 
 function humanizeKey(k) {
   return k.replaceAll('_', ' ');
@@ -230,7 +232,7 @@ export default function ItemDetail() {
           </div>
         </div>
 
-        {error && <p className="text-red-300 text-sm">{error}</p>}
+        <ErrorBanner message={error} onDismiss={() => setError(null)} />
       </div>
 
       <section className="space-y-2">
@@ -290,7 +292,7 @@ export default function ItemDetail() {
                   to={`/map?building=${b.id}`}
                   className="flex items-center gap-3 px-3 py-2 text-sm text-slate-100 hover:bg-slate-800/40 transition-colors"
                 >
-                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-honey-500 text-[11px] font-semibold text-white tabular-nums shrink-0">
+                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-sage-500 text-[11px] font-semibold text-white tabular-nums shrink-0">
                     {b.number}
                   </span>
                   <span className="flex-1 min-w-0 truncate">{b.name}</span>
@@ -309,7 +311,7 @@ export default function ItemDetail() {
       <section className="space-y-2">
         <h3 className="text-sm font-medium text-slate-300">Recent activity</h3>
         {txns.length === 0 ? (
-          <p className="text-sm text-slate-500">No movements yet.</p>
+          <EmptyState variant="inline" title="No movements yet." />
         ) : (
           <ul className="surface divide-y divide-slate-800">
             {txns.map((t) => (

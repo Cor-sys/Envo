@@ -9,6 +9,8 @@ import { getMyRecentItemIds, itemTypeLabel } from '../lib/items.js';
 import { photoUrl } from '../lib/photos.js';
 import StatusPill from '../components/StatusPill.jsx';
 import OrderButton from '../components/OrderButton.jsx';
+import ErrorBanner from '../components/ErrorBanner.jsx';
+import Skeleton, { SkeletonCard, SkeletonList } from '../components/Skeleton.jsx';
 
 // Tiny thumbnail used by the Recently scanned strip. Falls back to the
 // item's first letter when there's no photo so the strip's row heights
@@ -90,9 +92,20 @@ export default function Reports() {
     return recentIds.map((id) => byId.get(id)).filter(Boolean);
   }, [items, recentIds]);
 
-  if (error) return <div className="p-3 text-red-300">{error}</div>;
+  if (error) return <div className="p-3"><ErrorBanner message={error} /></div>;
   if (!items || !activity || !summary) {
-    return <div className="p-3 text-slate-400">Loading…</div>;
+    return (
+      <div className="p-3 space-y-5">
+        <Skeleton className="h-6 w-32" />
+        <div className="grid grid-cols-2 gap-2">
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
+        <SkeletonList rows={4} />
+      </div>
+    );
   }
 
   return (

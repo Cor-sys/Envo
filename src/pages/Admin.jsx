@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { createInvite, useStaffProfile } from '../lib/auth.jsx';
 import { supabase } from '../lib/supabase.js';
+import EmptyState from '../components/EmptyState.jsx';
+import ErrorBanner from '../components/ErrorBanner.jsx';
 
 // Admin-only console. Gated at the route level by isAdmin(profile) and at
 // the API level by the create-invite Edge Function checking staff_profile
@@ -90,7 +92,7 @@ export default function Admin() {
     return (
       <div className="p-3 space-y-2">
         <p className="text-red-300">Admin access required.</p>
-        <Link to="/" className="text-honey-400">← Back to inventory</Link>
+        <Link to="/" className="text-sage-300 hover:text-sage-200 transition-colors">← Back to inventory</Link>
       </div>
     );
   }
@@ -100,7 +102,7 @@ export default function Admin() {
       <div>
         <h2 className="text-xl font-semibold">Admin</h2>
         <p className="text-xs text-slate-500 mt-1">
-          Signed in as <span className="text-slate-300 font-mono">{profile.username}</span> · role <span className="text-honey-400">admin</span>
+          Signed in as <span className="text-slate-300 font-mono">{profile.username}</span> · role <span className="text-sage-300">admin</span>
         </p>
       </div>
 
@@ -127,13 +129,17 @@ export default function Admin() {
         </p>
       </section>
 
-      {error && <p className="text-red-300 text-sm">{error}</p>}
+      <ErrorBanner message={error} onDismiss={() => setError(null)} />
 
       <section className="space-y-2">
         <h3 className="text-sm font-medium text-slate-200">All invites</h3>
         {!invites && <p className="text-slate-400">Loading…</p>}
         {invites && invites.length === 0 && (
-          <p className="text-slate-500 text-sm">No invites yet. Generate one above.</p>
+          <EmptyState
+            variant="inline"
+            title="No invites yet."
+            description="Generate one above."
+          />
         )}
         <ul className="space-y-2">
           {invites?.map((inv) => {

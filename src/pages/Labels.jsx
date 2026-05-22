@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { itemTypeLabel, listItemsNeedingLabel } from '../lib/items.js';
+import EmptyState from '../components/EmptyState.jsx';
+import ErrorBanner from '../components/ErrorBanner.jsx';
 
 export default function Labels() {
   const [items, setItems] = useState(null);
@@ -49,14 +51,15 @@ export default function Labels() {
         them. QR encodes the SKU.
       </p>
 
-      {error && <p className="text-red-300 text-sm no-print">{error}</p>}
+      <ErrorBanner message={error} className="no-print" />
       {items === null && !error && <p className="text-slate-400 no-print">Loading…</p>}
 
       {items && items.length === 0 && (
-        <div className="rounded-2xl border border-dashed border-slate-700 p-6 text-center text-slate-400 no-print">
-          <p className="font-medium text-slate-200">Nothing to label.</p>
-          <p className="text-sm mt-1">Every item has a factory barcode.</p>
-        </div>
+        <EmptyState
+          className="no-print"
+          title="Nothing to label."
+          description="Every item has a factory barcode."
+        />
       )}
 
       {items && items.length > 0 && (
@@ -70,7 +73,7 @@ export default function Labels() {
                     type="checkbox"
                     checked={selected.has(it.id)}
                     onChange={() => toggle(it.id)}
-                    className="accent-honey-500"
+                    className="accent-sage-500"
                   />
                   <span className="font-medium text-slate-100 truncate">{it.name}</span>
                   <span className="ml-auto text-xs text-slate-400 font-mono">

@@ -207,7 +207,7 @@ export default function Scan() {
           onClick={() => setDirection('in')}
           className={`rounded-lg py-2 text-sm font-medium transition-colors ${
             inDir
-              ? 'bg-honey-500 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.15)]'
+              ? 'bg-sage-600 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.15)]'
               : 'text-slate-400 hover:text-slate-200'
           }`}
         >
@@ -259,7 +259,7 @@ export default function Scan() {
         <div className="surface p-4 space-y-3">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <Link to={`/items/${item.id}`} className="font-semibold text-slate-100 truncate hover:text-honey-400 transition-colors">
+              <Link to={`/items/${item.id}`} className="font-semibold text-slate-100 truncate hover:text-sage-300 transition-colors">
                 {item.name}
               </Link>
               <div className="text-xs text-slate-400 truncate">
