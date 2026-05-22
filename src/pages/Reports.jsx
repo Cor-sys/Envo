@@ -7,10 +7,12 @@ import {
 } from '../lib/reports.js';
 import { getMyRecentItemIds, itemTypeLabel } from '../lib/items.js';
 import { photoUrl } from '../lib/photos.js';
+import { ArrowDown, ArrowUp } from 'lucide-react';
 import StatusPill from '../components/StatusPill.jsx';
 import OrderButton from '../components/OrderButton.jsx';
 import ErrorBanner from '../components/ErrorBanner.jsx';
 import Skeleton, { SkeletonCard, SkeletonList } from '../components/Skeleton.jsx';
+import { formatAbsolute, formatRelative } from '../lib/format.js';
 
 // Tiny thumbnail used by the Recently scanned strip. Falls back to the
 // item's first letter when there's no photo so the strip's row heights
@@ -110,8 +112,7 @@ export default function Reports() {
 
   return (
     <div className="p-3 space-y-5 reports-page">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-slate-100">Reports</h2>
+      <div className="flex items-center justify-end">
         <button
           type="button"
           onClick={() => window.print()}
@@ -228,27 +229,32 @@ export default function Reports() {
         ) : (
           <ul className="surface print:border-slate-300 divide-y divide-slate-800 print:divide-slate-300">
             {activity.map((t) => (
-              <li key={t.id} className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
-                <div className="min-w-0">
+              <li key={t.id} className="flex items-center gap-3 px-3 py-2.5 text-sm">
+                <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-xs font-semibold tabular-nums shrink-0 print:bg-transparent ${
+                  t.direction === 'in'
+                    ? 'bg-emerald-500/15 text-emerald-300 print:text-emerald-700'
+                    : 'bg-red-500/15 text-red-300 print:text-red-700'
+                }`}>
+                  {t.direction === 'in'
+                    ? <ArrowUp size={12} strokeWidth={2.6} />
+                    : <ArrowDown size={12} strokeWidth={2.6} />}
+                  {t.qty}
+                </span>
+                <div className="flex-1 min-w-0">
                   <div className="truncate text-slate-100 print:text-slate-900">
                     {t.items?.name ?? '(item removed)'}
                   </div>
-                  <div className="text-[11px] text-slate-500 print:text-slate-700">
-                    {t.items?.sku} · {t.staff_label ?? '—'}
+                  <div className="text-[11px] text-slate-500 print:text-slate-700 truncate">
+                    {t.items?.sku} · {t.staff_label ?? 'unknown'}
                     {t.note ? ` · ${t.note}` : ''}
                   </div>
                 </div>
-                <div className="text-right text-xs">
-                  <div className={`tabular-nums font-medium ${
-                    t.direction === 'in' ? 'text-emerald-400 print:text-emerald-400'
-                                         : 'text-red-300 print:text-red-300'
-                  }`}>
-                    {t.direction === 'in' ? '+' : '−'}{t.qty}
-                  </div>
-                  <div className="text-slate-500 print:text-slate-700">
-                    {new Date(t.occurred_at).toLocaleString()}
-                  </div>
-                </div>
+                <span
+                  className="text-xs text-slate-500 print:text-slate-700 shrink-0"
+                  title={formatAbsolute(t.occurred_at)}
+                >
+                  {formatRelative(t.occurred_at)}
+                </span>
               </li>
             ))}
           </ul>

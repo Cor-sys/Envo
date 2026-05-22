@@ -4,6 +4,7 @@ import { createInvite, useStaffProfile } from '../lib/auth.jsx';
 import { supabase } from '../lib/supabase.js';
 import EmptyState from '../components/EmptyState.jsx';
 import ErrorBanner from '../components/ErrorBanner.jsx';
+import { formatAbsolute, formatRelative } from '../lib/format.js';
 
 // Admin-only console. Gated at the route level by isAdmin(profile) and at
 // the API level by the create-invite Edge Function checking staff_profile
@@ -99,12 +100,9 @@ export default function Admin() {
 
   return (
     <div className="p-3 space-y-4">
-      <div>
-        <h2 className="text-xl font-semibold">Admin</h2>
-        <p className="text-xs text-slate-500 mt-1">
-          Signed in as <span className="text-slate-300 font-mono">{profile.username}</span> · role <span className="text-sage-300">admin</span>
-        </p>
-      </div>
+      <p className="text-xs text-slate-500">
+        Signed in as <span className="text-slate-300 font-mono">{profile.username}</span> · role <span className="text-sage-300">admin</span>
+      </p>
 
       <section className="surface p-3 space-y-3">
         <h3 className="text-sm font-medium text-slate-200">Generate an invite</h3>
@@ -160,8 +158,10 @@ export default function Admin() {
                 </div>
                 {inv.note && <div className="text-xs text-slate-400">{inv.note}</div>}
                 <div className="text-[11px] text-slate-500">
-                  Created {new Date(inv.created_at).toLocaleString()}
-                  {inv.used_at && <> · Used {new Date(inv.used_at).toLocaleString()}</>}
+                  Created <span title={formatAbsolute(inv.created_at)}>{formatRelative(inv.created_at)}</span>
+                  {inv.used_at && (
+                    <> · Used <span title={formatAbsolute(inv.used_at)}>{formatRelative(inv.used_at)}</span></>
+                  )}
                 </div>
                 <div className="flex flex-wrap gap-2 pt-1">
                   {status === 'open' && (

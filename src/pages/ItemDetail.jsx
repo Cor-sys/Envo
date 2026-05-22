@@ -1,6 +1,10 @@
-import { Fragment, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { Check, ChevronLeft, Pencil } from 'lucide-react';
+import {
+  ArrowDown, ArrowUp, Check, ChevronLeft, Pencil,
+  Box, Database, ShoppingCart, Shield, Tag, Zap,
+} from 'lucide-react';
+import { formatAbsolute, formatRelative } from '../lib/format.js';
 import {
   getItem,
   itemTypeLabel,
@@ -19,9 +23,85 @@ function humanizeKey(k) {
   return k.replaceAll('_', ' ');
 }
 
-// purchase_url is a UX field surfaced on its own row, not in the generic
-// "details" dl, so it doesn't show up twice.
-const HIDDEN_META_KEYS = new Set(['purchase_url']);
+// Spec-sheet grouping. Each section pulls a fixed set of keys out of
+// `item` + `item.metadata` so the page reads like a product datasheet
+// instead of a flat alphabetical dump.
+//
+// Keys not in any section drop into "Other" — nothing silently vanishes,
+// but the grouped sections take precedence visually.
+//
+// Backend-managed metadata (sds_*, audit columns) is hidden from the
+// user-facing spec sheet entirely — staff get a dedicated SDS tab and
+// activity feed for that data.
+const HIDDEN_META_KEYS = new Set([
+  'purchase_url',          // own row inside the Reorder section
+  'sds_path', 'sds_url', 'sds_cached_at', 'sds_cached_from',
+  'sds_check_at', 'sds_check_http_status', 'sds_check_status',
+  'sds_final_url', 'sds_updated_at', 'sds_check_pdf_bytes',
+]);
+
+const SPEC_SECTIONS = [
+  { key: 'identity',   label: 'Identity',   Icon: Tag,
+    fields: ['type', 'category', 'model', 'model_code', 'barcode', 'location'] },
+  { key: 'physical',   label: 'Physical',   Icon: Box,
+    fields: ['size', 'color_notes', 'base_fixture', 'lamp_type', 'beam_angle'] },
+  { key: 'electrical', label: 'Electrical', Icon: Zap,
+    fields: ['watts', 'voltage', 'lumens', 'lifespan_hours', 'cri', 'color_temp_k'] },
+  { key: 'compliance', label: 'Compliance', Icon: Shield,
+    fields: ['cas', 'epa_reg_no', 'hazard_class'] },
+  { key: 'reorder',    label: 'Reorder',    Icon: ShoppingCart,
+    fields: ['purchase_url'] },
+  { key: 'sourcing',   label: 'Sourcing',   Icon: Database,
+    fields: ['import_source', 'spec_source', 'completion_note', 'qty_per_box', 'ansi_code'] },
+];
+
+// Friendlier labels for fields whose underscored key reads as jargon.
+const FIELD_LABEL = {
+  type:           'Type',
+  category:       'Category',
+  model:          'Model',
+  model_code:     'Model code',
+  barcode:        'Barcode',
+  location:       'Location',
+  cas:            'CAS number',
+  epa_reg_no:     'EPA reg. #',
+  cri:            'CRI',
+  color_temp_k:   'Color temperature',
+  lifespan_hours: 'Lifespan',
+  base_fixture:   'Base / fixture',
+  lamp_type:      'Lamp type',
+  color_notes:    'Color / notes',
+  beam_angle:     'Beam angle',
+  hazard_class:   'Hazard class',
+  ansi_code:      'ANSI code',
+  qty_per_box:    'Qty per box',
+  import_source:  'Imported from',
+  spec_source:    'Spec source',
+  completion_note:'Notes',
+  purchase_url:   'Vendor URL',
+};
+
+// Append units to known numeric-ish keys at render time so the catalog
+// doesn't need to store "1800 lm" — just "1800".
+function formatSpecValue(key, raw) {
+  const v = String(raw);
+  if (key === 'lifespan_hours') return `${v} h`;
+  if (key === 'color_temp_k')   return `${v} K`;
+  if (key === 'lumens')         return `${v} lm`;
+  return v;
+}
+
+// Pull the value for a single field. Top-level columns (type, category,
+// model, barcode, location) live on `item`; everything else lives on
+// `item.metadata`. `type` → itemTypeLabel for the human name.
+function getSpecValue(item, key) {
+  if (key === 'type')     return itemTypeLabel(item.item_type);
+  if (key === 'category') return item.category;
+  if (key === 'model')    return item.model;
+  if (key === 'barcode')  return item.barcode;
+  if (key === 'location') return item.location_text;
+  return item.metadata?.[key];
+}
 
 const QTY_PRESETS = [1, 5, 10, 25];
 
@@ -235,50 +315,69 @@ export default function ItemDetail() {
         <ErrorBanner message={error} onDismiss={() => setError(null)} />
       </div>
 
-      <section className="space-y-2">
-        <h3 className="text-sm font-medium text-slate-300">Details</h3>
-        <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1 text-sm text-slate-200">
-          <dt className="text-slate-500">Type</dt><dd>{itemTypeLabel(item.item_type)}</dd>
-          {item.category && (
-            <><dt className="text-slate-500">Category</dt><dd>{item.category}</dd></>
-          )}
-          {item.model && (
-            <><dt className="text-slate-500">Model</dt><dd>{item.model}</dd></>
-          )}
-          {item.barcode && (
-            <>
-              <dt className="text-slate-500">Barcode</dt>
-              <dd className="font-mono text-xs text-slate-300">{item.barcode}</dd>
-            </>
-          )}
-          {item.location_text && (
-            <><dt className="text-slate-500">Location</dt><dd>{item.location_text}</dd></>
-          )}
-          {md.purchase_url && (
-            <>
-              <dt className="text-slate-500">Reorder</dt>
-              <dd className="truncate">
-                <a
-                  href={md.purchase_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-honey-400 hover:text-honey-300 underline-offset-2 hover:underline transition-colors truncate inline-block max-w-full align-bottom"
-                >
-                  {md.purchase_url}
-                </a>
-              </dd>
-            </>
-          )}
-          {Object.entries(md)
-            .filter(([k]) => !HIDDEN_META_KEYS.has(k))
-            .map(([k, val]) => (
-              <Fragment key={k}>
-                <dt className="text-slate-500 capitalize">{humanizeKey(k)}</dt>
-                <dd>{String(val)}</dd>
-              </Fragment>
-            ))}
-        </dl>
-      </section>
+      {(() => {
+        // Build the grouped spec sheet. For each section, collect the
+        // fields whose values are non-empty; render the section only
+        // if at least one field made it through.
+        const claimedKeys = new Set();
+        SPEC_SECTIONS.forEach((s) => s.fields.forEach((k) => claimedKeys.add(k)));
+        const otherEntries = Object.entries(md).filter(
+          ([k, v]) => !HIDDEN_META_KEYS.has(k) && !claimedKeys.has(k) && v != null && v !== ''
+        );
+        return (
+          <section className="space-y-3">
+            {SPEC_SECTIONS.map((section) => {
+              const rows = section.fields
+                .map((k) => [k, getSpecValue(item, k)])
+                .filter(([, v]) => v != null && v !== '');
+              if (rows.length === 0) return null;
+              return (
+                <div key={section.key} className="surface p-3 space-y-2">
+                  <div className="flex items-center gap-2 text-sage-300">
+                    <section.Icon size={14} strokeWidth={2.2} />
+                    <h3 className="eyebrow text-sage-300">{section.label}</h3>
+                  </div>
+                  <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1.5 text-sm text-slate-200">
+                    {rows.map(([k, v]) => (
+                      <div key={k} className="contents">
+                        <dt className="text-slate-500">
+                          {FIELD_LABEL[k] ?? humanizeKey(k)}
+                        </dt>
+                        <dd className={k === 'barcode' ? 'font-mono text-xs text-slate-300' : ''}>
+                          {k === 'purchase_url' ? (
+                            <a
+                              href={v}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-honey-400 hover:text-honey-300 underline-offset-2 hover:underline transition-colors truncate inline-block max-w-full align-bottom"
+                            >
+                              {v}
+                            </a>
+                          ) : formatSpecValue(k, v)}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+              );
+            })}
+
+            {otherEntries.length > 0 && (
+              <div className="surface p-3 space-y-2">
+                <h3 className="eyebrow">Other</h3>
+                <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1.5 text-sm text-slate-200">
+                  {otherEntries.map(([k, v]) => (
+                    <div key={k} className="contents">
+                      <dt className="text-slate-500 capitalize">{humanizeKey(k)}</dt>
+                      <dd>{String(v)}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            )}
+          </section>
+        );
+      })()}
 
       {buildings.length > 0 && (
         <section className="space-y-2">
@@ -315,16 +414,26 @@ export default function ItemDetail() {
         ) : (
           <ul className="surface divide-y divide-slate-800">
             {txns.map((t) => (
-              <li key={t.id} className="flex items-center justify-between px-3 py-2 text-sm">
-                <div>
-                  <span className={t.direction === 'in' ? 'text-emerald-400' : 'text-red-300'}>
-                    {t.direction === 'in' ? '+' : '−'}{t.qty}
-                  </span>
-                  <span className="ml-2 text-slate-400">{t.staff_label || '—'}</span>
-                </div>
-                <div className="text-xs text-slate-500">
-                  {new Date(t.occurred_at).toLocaleString()}
-                </div>
+              <li key={t.id} className="flex items-center gap-3 px-3 py-2.5 text-sm">
+                <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-xs font-semibold tabular-nums shrink-0 ${
+                  t.direction === 'in'
+                    ? 'bg-emerald-500/15 text-emerald-300'
+                    : 'bg-red-500/15 text-red-300'
+                }`}>
+                  {t.direction === 'in'
+                    ? <ArrowUp size={12} strokeWidth={2.6} />
+                    : <ArrowDown size={12} strokeWidth={2.6} />}
+                  {t.qty}
+                </span>
+                <span className="flex-1 min-w-0 truncate text-slate-300">
+                  {t.staff_label || 'unknown'}
+                </span>
+                <span
+                  className="text-xs text-slate-500 shrink-0"
+                  title={formatAbsolute(t.occurred_at)}
+                >
+                  {formatRelative(t.occurred_at)}
+                </span>
               </li>
             ))}
           </ul>

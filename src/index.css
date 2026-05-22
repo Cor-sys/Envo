@@ -57,7 +57,7 @@
   /* Header height as a CSS custom property so sticky group headers inside
      pages can offset themselves by the exact header bar. Update here if the
      header padding/typography changes. */
-  :root { --header-h: 2.875rem; }
+  :root { --header-h: 3rem; }
   body {
     @apply bg-slate-950 text-slate-100 antialiased;
     font-feature-settings: 'cv11', 'ss01', 'ss03';
