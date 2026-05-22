@@ -260,12 +260,15 @@ function SdsEditor({ item, onClose, onSaved }) {
           </div>
         </div>
 
+        {/* Open PDF is the daily-use action — primary clay. Update PDF
+            is rare (only when the manufacturer ships a revised sheet)
+            so it sits underneath as secondary slate. */}
         {viewUrl ? (
           <a
             href={viewUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="tap-secondary w-full"
+            className="tap-primary w-full"
           >
             Open PDF
           </a>
@@ -275,7 +278,7 @@ function SdsEditor({ item, onClose, onSaved }) {
           </p>
         )}
 
-        <label className="tap-primary w-full cursor-pointer">
+        <label className="tap-secondary w-full cursor-pointer">
           {busy ? 'Working…' : (viewUrl ? 'Update PDF' : 'Upload PDF')}
           <input
             type="file"
