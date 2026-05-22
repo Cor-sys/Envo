@@ -69,7 +69,7 @@ export default function PullToRefresh({ onRefresh, children }) {
         }}
       >
         <div
-          className="text-honey-600 text-xs flex items-center gap-2"
+          className="text-honey-400 text-xs flex items-center gap-2"
           style={{ opacity: refreshing ? 1 : indicatorOpacity }}
         >
           {refreshing ? (

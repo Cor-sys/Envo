@@ -45,7 +45,7 @@ export default function PendingBadge() {
       onClick={() => drainQueue(supabase)}
       title={online ? 'Tap to retry sync' : 'Will sync when back online'}
       className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
-        online ? 'bg-amber-500/20 text-amber-800' : 'bg-slate-800 text-slate-300'
+        online ? 'bg-amber-500/20 text-amber-200' : 'bg-slate-800 text-slate-300'
       }`}
     >
       {count} pending{!online ? ' · offline' : ''}

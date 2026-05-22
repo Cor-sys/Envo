@@ -49,7 +49,7 @@ export default function Labels() {
         them. QR encodes the SKU.
       </p>
 
-      {error && <p className="text-red-700 text-sm no-print">{error}</p>}
+      {error && <p className="text-red-300 text-sm no-print">{error}</p>}
       {items === null && !error && <p className="text-slate-400 no-print">Loading…</p>}
 
       {items && items.length === 0 && (
