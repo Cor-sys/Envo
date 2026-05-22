@@ -131,7 +131,7 @@ export default function Reports() {
                     </div>
                     <StatusPill status={r.status} />
                   </div>
-                  <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="grid grid-cols-2 gap-2 text-center">
                     <div>
                       <div className="eyebrow">On hand</div>
                       <div className="text-base font-semibold tabular-nums text-slate-100 mt-0.5">{r.qty}</div>
@@ -139,10 +139,6 @@ export default function Reports() {
                     <div>
                       <div className="eyebrow">Threshold</div>
                       <div className="text-base tabular-nums text-slate-400 mt-0.5">{r.threshold}</div>
-                    </div>
-                    <div>
-                      <div className="eyebrow">Order qty</div>
-                      <div className="text-base font-semibold tabular-nums text-honey-300 mt-0.5">{r.suggested_qty}</div>
                     </div>
                   </div>
                   <OrderButton item={r} variant="primary" className="w-full">
@@ -163,7 +159,6 @@ export default function Reports() {
                     <th className="py-1 pr-2 font-medium">Type</th>
                     <th className="py-1 pr-2 font-medium text-right">On hand</th>
                     <th className="py-1 pr-2 font-medium text-right">Threshold</th>
-                    <th className="py-1 pr-2 font-medium text-right">Order qty</th>
                     <th className="py-1 pr-2 font-medium">Status</th>
                     <th className="py-1 font-medium no-print"></th>
                   </tr>
@@ -178,7 +173,6 @@ export default function Reports() {
                       <td className="py-1 pr-2 text-slate-400 print:text-slate-700 whitespace-nowrap">{itemTypeLabel(r.item_type)}</td>
                       <td className="py-1 pr-2 text-right tabular-nums">{r.qty}</td>
                       <td className="py-1 pr-2 text-right tabular-nums text-slate-400 print:text-slate-700">{r.threshold}</td>
-                      <td className="py-1 pr-2 text-right tabular-nums font-medium">{r.suggested_qty}</td>
                       <td className="py-1 pr-2"><StatusPill status={r.status} /></td>
                       <td className="py-1 pl-2 no-print">
                         <OrderButton
