@@ -128,6 +128,23 @@ let items = [
   },
 ];
 
+// In-memory item_prices seed so the demo shows the new Pricing block on
+// item detail + the Best-price hint in the OrderButton title.
+let itemPrices = [
+  { id: 'demo-price-1', item_id: 'demo-002', vendor: 'Grainger',
+    price: 5.40, url: 'https://www.grainger.com/category/lighting/light-bulbs/linear-fluorescent-tubes',
+    currency: 'USD', note: 'Case of 25', position: 0,
+    created_at: '2026-04-12T09:00:00Z', updated_at: '2026-04-12T09:00:00Z' },
+  { id: 'demo-price-2', item_id: 'demo-002', vendor: 'Home Depot',
+    price: 6.97, url: 'https://www.homedepot.com/p/Sylvania-LED-T8/100150921',
+    currency: 'USD', note: null, position: 1,
+    created_at: '2026-04-12T09:00:00Z', updated_at: '2026-04-12T09:00:00Z' },
+  { id: 'demo-price-3', item_id: 'demo-005', vendor: 'Homedepot.com',
+    price: null, url: 'https://www.homedepot.com/p/Klean-Strip-1-qt-Mineral-Spirits-Paint-Thinner-QKSP94005/100150921',
+    currency: 'USD', note: 'Price unknown — backfilled from legacy URL', position: 0,
+    created_at: '2026-04-12T09:00:00Z', updated_at: '2026-04-12T09:00:00Z' },
+];
+
 let transactions = [
   { id: 'demo-txn-1', item_id: 'demo-001', direction: 'in',  qty: 12,
     staff_id: fakeUser.id, staff_label: 'Demo User', note: 'Restock',
@@ -152,10 +169,35 @@ function withStatus(it) {
   return { ...it, status, needs_label: !it.barcode };
 }
 
+// Mirror the SQL view: items_with_status + best/max/vendor/quote_count.
+function withBestPrice(it) {
+  const mine = itemPrices.filter(p => p.item_id === it.id);
+  const actionable = mine.filter(p => p.price != null && p.url);
+  const priced = mine.filter(p => p.price != null);
+  const max = priced.length > 0 ? Math.max(...priced.map(p => Number(p.price))) : null;
+  let best_price = null, best_vendor = null, best_url = null;
+  if (actionable.length > 0) {
+    const sorted = [...actionable].sort((a, b) => Number(a.price) - Number(b.price));
+    best_price = Number(sorted[0].price);
+    best_vendor = sorted[0].vendor;
+    best_url = sorted[0].url;
+  }
+  return {
+    ...it,
+    best_price,
+    best_vendor,
+    best_url,
+    max_price: max,
+    quote_count: mine.length,
+  };
+}
+
 function tableRows(table) {
-  if (table === 'transactions')     return [...transactions];
-  if (table === 'items_with_status') return items.filter(i => !i.deleted_at).map(withStatus);
-  if (table === 'items')            return items.filter(i => !i.deleted_at);
+  if (table === 'transactions')           return [...transactions];
+  if (table === 'items_with_status')      return items.filter(i => !i.deleted_at).map(withStatus);
+  if (table === 'items_with_best_price')  return items.filter(i => !i.deleted_at).map(withStatus).map(withBestPrice);
+  if (table === 'items')                  return items.filter(i => !i.deleted_at);
+  if (table === 'item_prices')            return [...itemPrices];
   return [];
 }
 
@@ -166,10 +208,11 @@ function makeBuilder(table) {
   let limit = null;
   let orderBys = [];   // record but don't fully implement multi-sort
   let pendingUpdate = null;
+  let pendingDelete = false;
 
   const apply = () => {
     // Apply any pending update against the (now filtered) rows. Mutates the
-    // backing `items` array so subsequent queries see the change.
+    // backing array so subsequent queries see the change.
     if (pendingUpdate && table === 'items') {
       const targetIds = new Set(rows.map((r) => r.id));
       items = items.map((it) =>
@@ -177,6 +220,20 @@ function makeBuilder(table) {
       );
       rows = items.filter((i) => !i.deleted_at && targetIds.has(i.id));
       pendingUpdate = null;
+    }
+    if (pendingUpdate && table === 'item_prices') {
+      const targetIds = new Set(rows.map((r) => r.id));
+      itemPrices = itemPrices.map((p) =>
+        targetIds.has(p.id) ? { ...p, ...pendingUpdate, updated_at: new Date().toISOString() } : p,
+      );
+      rows = itemPrices.filter((p) => targetIds.has(p.id));
+      pendingUpdate = null;
+    }
+    if (pendingDelete && table === 'item_prices') {
+      const targetIds = new Set(rows.map((r) => r.id));
+      itemPrices = itemPrices.filter((p) => !targetIds.has(p.id));
+      rows = [];
+      pendingDelete = false;
     }
     let r = rows;
     if (orderBys.length) {
@@ -211,6 +268,20 @@ function makeBuilder(table) {
     },
     insert(values) {
       const arr = Array.isArray(values) ? values : [values];
+      if (table === 'item_prices') {
+        const created = arr.map((v) => ({
+          ...v,
+          id: 'demo-price-' + Math.random().toString(36).slice(2, 10),
+          currency: v.currency ?? 'USD',
+          position: v.position ?? 0,
+          note: v.note ?? null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }));
+        itemPrices = itemPrices.concat(created);
+        rows = created;
+        return builder;
+      }
       const created = arr.map((v, i) => ({
         ...v,
         id: 'demo-' + Math.random().toString(36).slice(2, 10),
@@ -225,6 +296,10 @@ function makeBuilder(table) {
       }));
       items = items.concat(created);
       rows = created;
+      return builder;
+    },
+    delete() {
+      pendingDelete = true;
       return builder;
     },
     maybeSingle() { return Promise.resolve({ data: apply()[0] ?? null, error: null }); },

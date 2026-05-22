@@ -53,7 +53,7 @@ export function itemTypeLabel(value) {
 const STATUS_ORDER = { out: 0, low: 1, ok: 2 };
 
 export async function listItems({ search, itemType } = {}) {
-  let q = supabase.from('items_with_status').select('*');
+  let q = supabase.from('items_with_best_price').select('*');
   if (itemType) q = q.eq('item_type', itemType);
   const s = (search ?? '').trim();
   if (s) {
@@ -78,7 +78,7 @@ export async function listItems({ search, itemType } = {}) {
 // staff can scan them in/out.
 export async function listItemsNeedingLabel() {
   const { data, error } = await supabase
-    .from('items_with_status')
+    .from('items_with_best_price')
     .select('id, sku, name, brand, item_type, category, location_text, metadata')
     .is('barcode', null)
     .order('item_type')
@@ -89,7 +89,7 @@ export async function listItemsNeedingLabel() {
 
 export async function getItem(id) {
   const { data, error } = await supabase
-    .from('items_with_status')
+    .from('items_with_best_price')
     .select('*')
     .eq('id', id)
     .maybeSingle();
@@ -104,7 +104,7 @@ export async function lookupItemByCode(code) {
   if (!trimmed) return null;
 
   const byBarcode = await supabase
-    .from('items_with_status')
+    .from('items_with_best_price')
     .select('*')
     .eq('barcode', trimmed)
     .maybeSingle();
@@ -112,7 +112,7 @@ export async function lookupItemByCode(code) {
   if (byBarcode.data) return byBarcode.data;
 
   const bySku = await supabase
-    .from('items_with_status')
+    .from('items_with_best_price')
     .select('*')
     .eq('sku', trimmed)
     .maybeSingle();

@@ -12,6 +12,7 @@ import {
   recordMovement,
 } from '../lib/items.js';
 import { listBuildingsForItem } from '../lib/buildings.js';
+import { listPricesForItem, formatMoney } from '../lib/prices.js';
 import { photoUrl } from '../lib/photos.js';
 import { success as hapticSuccess, error as hapticError, tap as hapticTap } from '../lib/haptics.js';
 import StatusPill from '../components/StatusPill.jsx';
@@ -50,7 +51,7 @@ const SPEC_SECTIONS = [
   { key: 'compliance', label: 'Compliance', Icon: Shield,
     fields: ['cas', 'epa_reg_no', 'hazard_class'] },
   { key: 'reorder',    label: 'Reorder',    Icon: ShoppingCart,
-    fields: ['purchase_url'] },
+    fields: [] },          // own section renders below — see Pricing block
   { key: 'sourcing',   label: 'Sourcing',   Icon: Database,
     fields: ['import_source', 'spec_source', 'completion_note', 'qty_per_box', 'ansi_code'] },
 ];
@@ -111,6 +112,7 @@ export default function ItemDetail() {
   const [item, setItem] = useState(null);
   const [txns, setTxns] = useState([]);
   const [buildings, setBuildings] = useState([]);
+  const [prices, setPrices] = useState([]);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -120,16 +122,20 @@ export default function ItemDetail() {
   async function reload() {
     setError(null);
     try {
-      const [it, t, b] = await Promise.all([
+      const [it, t, b, ps] = await Promise.all([
         getItem(id),
         recentTransactions(id, 10),
         // Soft-fail the buildings join: a missing buildings table or RLS
         // hiccup shouldn't break the rest of the item detail page.
         listBuildingsForItem(id).catch(() => []),
+        // Same defensive treatment for pricing — pre-PR-A schemas don't
+        // have the table yet.
+        listPricesForItem(id).catch(() => []),
       ]);
       setItem(it);
       setTxns(t);
       setBuildings(b);
+      setPrices(ps);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -241,7 +247,11 @@ export default function ItemDetail() {
               {item.status === 'out' ? 'Out of stock' : 'Low stock'}
             </div>
             <div className="text-xs text-honey-300/70">
-              {md.purchase_url ? 'Tap to reorder from supplier.' : 'Tap to search the web.'}
+              {item.best_url
+                ? `Tap to reorder${item.best_vendor ? ` from ${item.best_vendor}` : ''}.`
+                : md.purchase_url
+                  ? 'Tap to reorder from supplier.'
+                  : 'Tap to search the web.'}
             </div>
           </div>
           <OrderButton item={item} variant="primary" />
@@ -375,6 +385,57 @@ export default function ItemDetail() {
                 </dl>
               </div>
             )}
+          </section>
+        );
+      })()}
+
+      {prices.length > 0 && (() => {
+        const actionable = prices.filter(p => p.price != null && p.url);
+        const bestId = actionable.length > 0
+          ? actionable.reduce((min, p) => Number(p.price) < Number(min.price) ? p : min, actionable[0]).id
+          : null;
+        return (
+          <section className="space-y-2">
+            <div className="flex items-baseline justify-between">
+              <h3 className="text-sm font-medium text-slate-300">
+                Pricing <span className="text-slate-500 tabular-nums">{prices.length}</span>
+              </h3>
+            </div>
+            <ul className="surface divide-y divide-slate-800">
+              {prices.map((p) => {
+                const isBest = p.id === bestId;
+                return (
+                  <li key={p.id} className="px-3 py-2.5 text-sm flex items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-slate-100 truncate">{p.vendor}</span>
+                        {isBest && (
+                          <span className="text-[10.5px] font-semibold uppercase tracking-wider text-emerald-300 bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                            Best
+                          </span>
+                        )}
+                      </div>
+                      {p.note && <div className="text-xs text-slate-500 truncate mt-0.5">{p.note}</div>}
+                      {p.url && (
+                        <a
+                          href={p.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-sage-300 hover:text-sage-200 underline-offset-2 hover:underline transition-colors truncate inline-block max-w-full align-bottom"
+                        >
+                          {p.url}
+                        </a>
+                      )}
+                    </div>
+                    <div className="text-right shrink-0 tabular-nums">
+                      {p.price != null
+                        ? <span className="font-medium text-slate-100">{formatMoney(p.price)}</span>
+                        : <span className="text-slate-500 text-xs">—</span>}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
           </section>
         );
       })()}

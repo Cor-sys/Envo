@@ -8,7 +8,10 @@ import {
   updateItem,
 } from '../lib/items.js';
 import { removeItemPhoto, uploadItemPhoto } from '../lib/photos.js';
+import { listPricesForItem, savePrices } from '../lib/prices.js';
+import { isAdmin, useStaffProfile } from '../lib/auth.jsx';
 import PhotoInput from '../components/PhotoInput.jsx';
+import PricingEditor from '../components/PricingEditor.jsx';
 import ErrorBanner from '../components/ErrorBanner.jsx';
 
 const NULLABLE = ['category', 'brand', 'model', 'barcode', 'location_text'];
@@ -16,10 +19,14 @@ const NULLABLE = ['category', 'brand', 'model', 'barcode', 'location_text'];
 export default function EditItem() {
   const { id } = useParams();
   const nav = useNavigate();
+  const { profile } = useStaffProfile();
+  const admin = isAdmin(profile);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [loaded, setLoaded] = useState(false);
   const [v, setV] = useState(null);
+  const [prices, setPrices] = useState([]);
+  const [originalPrices, setOriginalPrices] = useState([]);
   // Photo state: blob is a fresh upload, removeFlag means "delete existing".
   const [photoBlob, setPhotoBlob] = useState(null);
   const [photoRemoveFlag, setPhotoRemoveFlag] = useState(false);
@@ -27,16 +34,14 @@ export default function EditItem() {
 
   useEffect(() => {
     let cancelled = false;
-    getItem(id)
-      .then((it) => {
+    Promise.all([getItem(id), listPricesForItem(id).catch(() => [])])
+      .then(([it, ps]) => {
         if (cancelled) return;
         if (!it) {
           setError('Item not found.');
           setLoaded(true);
           return;
         }
-        // purchase_url is editable as a top-level field even though it lives
-        // in metadata — split it out for the form, repack on submit.
         const meta = it.metadata ?? {};
         setV({
           item_type: it.item_type,
@@ -48,10 +53,29 @@ export default function EditItem() {
           qty: it.qty,
           threshold: it.threshold,
           location_text: it.location_text ?? '',
-          purchase_url: meta.purchase_url ?? '',
           metadata: meta,
         });
         setOriginalPath(it.image_path ?? null);
+        // If the item already has a backfilled item_prices row, show those.
+        // Otherwise, if metadata.purchase_url is set and no prices exist yet,
+        // prefill one read-only row from the legacy URL so the user sees the
+        // continuity. (The backfill in migration 208 normally already did
+        // this — this is a belt-and-suspenders for self-hosters who skipped.)
+        if (ps.length === 0 && meta.purchase_url) {
+          let host = '';
+          try { host = new URL(meta.purchase_url).hostname.replace(/^www\./, ''); }
+          catch { host = 'Vendor'; }
+          setPrices([{ vendor: host.charAt(0).toUpperCase() + host.slice(1), price: '', url: meta.purchase_url, note: '' }]);
+        } else {
+          setPrices(ps.map(p => ({
+            id: p.id,
+            vendor: p.vendor,
+            price: p.price == null ? '' : String(p.price),
+            url: p.url ?? '',
+            note: p.note ?? '',
+          })));
+        }
+        setOriginalPrices(ps);
         setLoaded(true);
       })
       .catch((e) => {
@@ -104,13 +128,19 @@ export default function EditItem() {
       payload.qty       = Math.max(0, Number(payload.qty)       || 0);
       payload.threshold = Math.max(0, Number(payload.threshold) || 0);
 
-      // Rebuild metadata: preserve any extra keys, refresh known fields, then
-      // attach the editable purchase_url.
+      // Rebuild metadata: preserve any extra keys, refresh known fields.
+      // The legacy metadata.purchase_url is dropped IF at least one price
+      // row carries a URL — pricing is now the source of truth. Items
+      // without any actionable quote keep the legacy URL intact so the
+      // OrderButton fallback chain still has something to point at.
       const known = new Set(metaFields.map((f) => f.key));
+      const hasActionableQuote = prices.some(p =>
+        (p.vendor ?? '').trim() && (p.url ?? '').trim() && p.price !== '' && p.price != null
+      );
       const cleaned = {};
       for (const [k, val] of Object.entries(v.metadata ?? {})) {
-        if (k === 'purchase_url') continue;       // handled below
-        if (known.has(k)) continue;                // re-added from form
+        if (k === 'purchase_url' && hasActionableQuote) continue; // superseded
+        if (known.has(k)) continue;                                // re-added from form
         if (val === undefined || val === null || val === '') continue;
         cleaned[k] = val;
       }
@@ -118,9 +148,6 @@ export default function EditItem() {
         const raw = v.metadata[f.key];
         if (raw === undefined || raw === null || raw === '') continue;
         cleaned[f.key] = f.type === 'number' ? Number(raw) : raw;
-      }
-      if (v.purchase_url && v.purchase_url.trim()) {
-        cleaned.purchase_url = v.purchase_url.trim();
       }
       payload.metadata = cleaned;
 
@@ -137,6 +164,24 @@ export default function EditItem() {
       }
 
       await updateItem(id, payload);
+
+      // Pricing: only persist when the user is an admin (PricingEditor
+      // also disables the fieldset, so non-admin shouldn't have changes
+      // to commit, but belt-and-suspenders against tampering).
+      if (admin) {
+        // Filter out empty-vendor rows (treated as abandoned slots).
+        const cleanRows = prices
+          .map(p => ({
+            id: p.id,
+            vendor: (p.vendor ?? '').trim(),
+            price: p.price === '' || p.price == null ? null : Number(p.price),
+            url: (p.url ?? '').trim() || null,
+            note: (p.note ?? '').trim() || null,
+          }))
+          .filter(p => p.vendor);
+        await savePrices({ itemId: id, nextRows: cleanRows, originalRows: originalPrices });
+      }
+
       nav(`/items/${id}`, { replace: true });
     } catch (e) {
       setError(e.message);
@@ -223,19 +268,11 @@ export default function EditItem() {
         </label>
       </div>
 
-      <label className="block">
-        <span className="block text-sm text-slate-300">Reorder URL</span>
-        <input
-          className={inputCls}
-          type="url"
-          placeholder="https://… (where you order this from)"
-          value={v.purchase_url}
-          onChange={(e) => setField('purchase_url', e.target.value)}
-        />
-        <span className="block text-xs text-slate-500 mt-1">
-          Powers the "Order" button on item detail. Blank = fall back to a web search.
-        </span>
-      </label>
+      <PricingEditor
+        rows={prices}
+        onChange={setPrices}
+        disabled={!admin}
+      />
 
       {metaFields.length > 0 && (
         <fieldset className="space-y-3 surface p-3">
