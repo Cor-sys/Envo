@@ -15,14 +15,11 @@ import { AlertTriangle, CheckCircle2, X } from 'lucide-react';
 import SdsStatusBadge from '../components/SdsStatusBadge.jsx';
 import PullToRefresh from '../components/PullToRefresh.jsx';
 
-const FILTERS = [
-  { value: 'all',      label: 'All' },
-  { value: 'problem',  label: 'Bad links' },
-  { value: 'missing',  label: 'Missing SDS' },
-  { value: 'hint',     label: 'Needs verification' },
-  { value: 'linked',   label: 'Linked' },
-  { value: 'uploaded', label: 'On file' },
-];
+// Filter chips were dropped once every chemical/paint item had a verified
+// SDS PDF on file — the SDS resolution pass covered the inventory 100%, so
+// "missing / hint / linked / bad links" categories all hit zero matches.
+// Search is the only meaningful narrowing now. If a new item is added
+// without an SDS later, the per-row CheckBadge still surfaces problems.
 
 // Inline indicator for the result of the most recent `npm run check-sds`.
 // Sits next to the SDS status badge on linked rows. Quiet on success
@@ -60,7 +57,6 @@ function CheckBadge({ status }) {
 // staff can scan the same way across screens.
 export default function Sds() {
   const [items, setItems]       = useState(null);
-  const [filter, setFilter]     = useState('all');
   const [search, setSearch]     = useState('');
   const [editing, setEditing]   = useState(null);   // item being edited
   const [error, setError]       = useState(null);
@@ -98,22 +94,14 @@ export default function Sds() {
 
   const filtered = useMemo(() => {
     if (!decorated) return null;
-    let list = decorated;
-    if (filter === 'problem') {
-      list = list.filter((it) => it._sds === 'linked' && isSdsCheckProblem(it._check));
-    } else if (filter !== 'all') {
-      list = list.filter((it) => it._sds === filter);
-    }
     const s = search.trim().toLowerCase();
-    if (s) {
-      list = list.filter((it) =>
-        (it.name ?? '').toLowerCase().includes(s) ||
-        (it.brand ?? '').toLowerCase().includes(s) ||
-        (it.metadata?.cas ?? '').toLowerCase().includes(s),
-      );
-    }
-    return list;
-  }, [decorated, filter, search]);
+    if (!s) return decorated;
+    return decorated.filter((it) =>
+      (it.name ?? '').toLowerCase().includes(s) ||
+      (it.brand ?? '').toLowerCase().includes(s) ||
+      (it.metadata?.cas ?? '').toLowerCase().includes(s),
+    );
+  }, [decorated, search]);
 
   const grouped = useMemo(() => {
     if (!filtered) return null;
@@ -147,35 +135,13 @@ export default function Sds() {
           onChange={(e) => setSearch(e.target.value)}
         />
 
-        <div className="chip-row">
-          {FILTERS.map((f) => {
-            const active = filter === f.value;
-            const count = counts?.[f.value];
-            return (
-              <button
-                key={f.value}
-                type="button"
-                onClick={() => setFilter(f.value)}
-                className={active ? 'chip-active' : 'chip-inactive'}
-              >
-                {f.label}
-                {typeof count === 'number' && (
-                  <span className={active ? 'opacity-90' : 'opacity-60'}>
-                    {count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-
         {error && <p className="text-red-300 text-sm">{error}</p>}
         {!decorated && !error && <p className="text-slate-400">Loading…</p>}
 
         {grouped && grouped.length === 0 && (
           <div className="rounded-2xl border border-dashed border-slate-700 p-6 text-center text-slate-400">
-            <p className="font-medium text-slate-200">Nothing here.</p>
-            <p className="text-sm mt-1">Adjust the filter or clear the search.</p>
+            <p className="font-medium text-slate-200">Nothing matches.</p>
+            <p className="text-sm mt-1">Clear the search to see every item.</p>
           </div>
         )}
 
