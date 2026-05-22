@@ -138,7 +138,10 @@ export default function Sds() {
 
         {grouped && grouped.map((group) => (
           <section key={group.category} className="space-y-2">
-            <div className="sticky top-0 z-10 -mx-3 px-3 py-1.5 bg-slate-950/85 backdrop-blur border-b border-slate-800/60">
+            <div
+              style={{ top: 'var(--header-h)' }}
+              className="sticky z-10 -mx-3 px-3 py-1.5 bg-slate-950/85 backdrop-blur border-b border-slate-800/60"
+            >
               <h3 className="text-xs uppercase tracking-wider font-semibold text-slate-200">
                 {group.category} <span className="text-slate-500 tabular-nums">{group.items.length}</span>
               </h3>
