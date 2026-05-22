@@ -9,6 +9,7 @@ import {
 } from '../lib/items.js';
 import { success as hapticSuccess, error as hapticError, tap as hapticTap } from '../lib/haptics.js';
 import StatusPill from '../components/StatusPill.jsx';
+import ErrorBanner from '../components/ErrorBanner.jsx';
 
 const BARCODE_FORMATS = [
   'qr_code',
@@ -247,12 +248,11 @@ export default function Scan() {
         )}
       </div>
 
-      {permDenied && (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">
-          Camera permission denied. Allow camera access in your browser&rsquo;s
-          site settings and reload, or use manual entry below.
-        </div>
-      )}
+      <ErrorBanner
+        message={permDenied
+          ? "Camera permission denied. Allow camera access in your browser's site settings and reload, or use manual entry below."
+          : null}
+      />
 
       {/* matched item card */}
       {item ? (
@@ -292,16 +292,12 @@ export default function Scan() {
         </div>
       )}
 
-      {error && (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">
-          {error}
-        </div>
-      )}
+      <ErrorBanner message={error} onDismiss={() => setError(null)} />
 
       {/* manual entry */}
       <form onSubmit={manualSubmit} className="flex gap-2">
         <input
-          className="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 placeholder-slate-500"
+          className="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2.5 placeholder-slate-500"
           placeholder="Or type UPC / SKU"
           value={manualCode}
           onChange={(e) => setManualCode(e.target.value)}

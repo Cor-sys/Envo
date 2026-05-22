@@ -197,7 +197,7 @@ export default function Reports() {
                               {it.sku}{it.brand ? ` · ${it.brand}` : ''}
                             </div>
                           </td>
-                          <td className="py-1 pr-2 text-slate-400 print:text-slate-700 text-xs whitespace-nowrap">
+                          <td className="py-1 pr-2 text-slate-300 print:text-slate-700 text-xs whitespace-nowrap">
                             {it.location_text ?? ''}
                           </td>
                           <td className="py-1 pr-2 text-right tabular-nums">{it.qty}</td>

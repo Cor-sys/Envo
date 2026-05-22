@@ -13,6 +13,7 @@ import SdsStatusBadge from '../components/SdsStatusBadge.jsx';
 import PullToRefresh from '../components/PullToRefresh.jsx';
 import EmptyState from '../components/EmptyState.jsx';
 import ErrorBanner from '../components/ErrorBanner.jsx';
+import { SkeletonList } from '../components/Skeleton.jsx';
 import { formatAbsolute, formatRelative } from '../lib/format.js';
 
 // Filter chips were dropped once every chemical/paint item had a verified
@@ -135,7 +136,7 @@ export default function Sds() {
         />
 
         <ErrorBanner message={error} onDismiss={() => setError(null)} />
-        {!decorated && !error && <p className="text-slate-400">Loading…</p>}
+        {!decorated && !error && <SkeletonList rows={5} />}
 
         {grouped && grouped.length === 0 && (
           <EmptyState

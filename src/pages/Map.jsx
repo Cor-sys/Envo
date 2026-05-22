@@ -13,6 +13,7 @@ import { isAdmin, useStaffProfile } from '../lib/auth.jsx';
 import StatusPill from '../components/StatusPill.jsx';
 import EmptyState from '../components/EmptyState.jsx';
 import ErrorBanner from '../components/ErrorBanner.jsx';
+import { SkeletonList } from '../components/Skeleton.jsx';
 
 // Map tab — pragmatic interim shape. The campus illustration is a
 // decorative banner at the top; all interaction happens through the
@@ -74,7 +75,7 @@ export default function MapPage() {
       </div>
 
       <ErrorBanner message={error} onDismiss={() => setError(null)} />
-      {!buildings && !error && <p className="text-slate-400 text-sm">Loading…</p>}
+      {!buildings && !error && <SkeletonList rows={6} />}
 
       {/* Decorative reference. The illustration's own legend at the bottom
           numbers every building; staff use that to find what they want,

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { signInWithUsername } from '../lib/auth.jsx';
+import ErrorBanner from './ErrorBanner.jsx';
 
 // Sign-in only. There's no sign-up path here on purpose — new accounts can
 // only be created through /invite/:code, which an admin distributes
@@ -25,7 +26,7 @@ export default function Login() {
     }
   }
 
-  const inputCls = 'mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 placeholder-slate-500';
+  const inputCls = 'mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2.5 placeholder-slate-500';
 
   return (
     <div className="mx-auto max-w-sm p-6 space-y-4">
@@ -61,7 +62,7 @@ export default function Login() {
           />
         </label>
 
-        {error && <p className="text-red-300 text-sm">{error}</p>}
+        <ErrorBanner message={error} onDismiss={() => setError(null)} />
 
         <button className="tap-primary w-full" type="submit" disabled={busy}>
           {busy ? 'Signing in…' : 'Sign in'}

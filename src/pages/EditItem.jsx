@@ -145,9 +145,9 @@ export default function EditItem() {
     }
   }
 
-  if (!loaded) return <div className="p-3 text-slate-400">Loading…</div>;
-  if (loaded && !v && error) return <div className="p-3 text-red-300">{error}</div>;
-  if (!v) return <div className="p-3 text-slate-400">Item not found.</div>;
+  if (!loaded) return <div className="p-3 text-slate-400 text-sm">Loading…</div>;
+  if (loaded && !v && error) return <div className="p-3"><ErrorBanner message={error} /></div>;
+  if (!v) return <div className="p-3"><ErrorBanner message="Item not found." /></div>;
 
   const inputCls = 'mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2.5 placeholder-slate-500';
 

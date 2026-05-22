@@ -4,6 +4,7 @@ import { createInvite, useStaffProfile } from '../lib/auth.jsx';
 import { supabase } from '../lib/supabase.js';
 import EmptyState from '../components/EmptyState.jsx';
 import ErrorBanner from '../components/ErrorBanner.jsx';
+import Skeleton, { SkeletonCard, SkeletonList } from '../components/Skeleton.jsx';
 import { formatAbsolute, formatRelative } from '../lib/format.js';
 
 // Admin-only console. Gated at the route level by isAdmin(profile) and at
@@ -87,13 +88,19 @@ export default function Admin() {
   }
 
   if (profileLoading) {
-    return <div className="p-3 text-slate-400">Loading…</div>;
+    return (
+      <div className="p-3 space-y-3">
+        <Skeleton className="h-4 w-40" />
+        <SkeletonCard />
+        <SkeletonList rows={3} />
+      </div>
+    );
   }
   if (!profile || profile.role !== 'admin') {
     return (
-      <div className="p-3 space-y-2">
-        <p className="text-red-300">Admin access required.</p>
-        <Link to="/" className="text-sage-300 hover:text-sage-200 transition-colors">← Back to inventory</Link>
+      <div className="p-3 space-y-3">
+        <ErrorBanner message="Admin access required." />
+        <Link to="/" className="text-sm text-sage-300 hover:text-sage-200 transition-colors">← Back to inventory</Link>
       </div>
     );
   }
@@ -131,7 +138,7 @@ export default function Admin() {
 
       <section className="space-y-2">
         <h3 className="text-sm font-medium text-slate-200">All invites</h3>
-        {!invites && <p className="text-slate-400">Loading…</p>}
+        {!invites && <SkeletonList rows={3} />}
         {invites && invites.length === 0 && (
           <EmptyState
             variant="inline"
