@@ -151,17 +151,31 @@ export async function updateItem(id, values) {
 // during retry, so a queued movement is safe to send even if a previous
 // attempt's response was lost.
 //
+// Price snapshots (unitCostSnapshot / maxPriceSnapshot / vendorSnapshot)
+// MUST be captured at the call site at the time of scan. The Scan and
+// ItemDetail pages read these off the looked-up item (which comes from
+// items_with_best_price). Passing them here so they ride through both the
+// online path and the offline queue without drift.
+//
 // Returns one of:
 //   { queued: true,  idempotencyKey }  — saved locally, will sync later
 //   <transaction row>                  — applied on the server immediately
-export async function recordMovement({ itemId, direction, qty, note = null }) {
+export async function recordMovement({
+  itemId, direction, qty, note = null,
+  unitCostSnapshot = null, maxPriceSnapshot = null, vendorSnapshot = null,
+}) {
   const idempotencyKey = (typeof crypto !== 'undefined' && crypto.randomUUID)
     ? crypto.randomUUID()
     : null;
 
+  const enqueue = () => enqueueMovement({
+    itemId, direction, qty, note, idempotencyKey,
+    unitCostSnapshot, maxPriceSnapshot, vendorSnapshot,
+  });
+
   const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
   if (offline) {
-    await enqueueMovement({ itemId, direction, qty, note, idempotencyKey });
+    await enqueue();
     return { queued: true, idempotencyKey };
   }
 
@@ -172,6 +186,9 @@ export async function recordMovement({ itemId, direction, qty, note = null }) {
       p_qty: qty,
       p_note: note,
       p_idempotency_key: idempotencyKey,
+      p_unit_cost_snapshot: unitCostSnapshot,
+      p_max_price_snapshot: maxPriceSnapshot,
+      p_vendor_snapshot:    vendorSnapshot,
     });
     if (error) throw error;
     return data;
@@ -183,7 +200,7 @@ export async function recordMovement({ itemId, direction, qty, note = null }) {
       !e?.code &&
       /fetch|network|failed to|timeout|offline/i.test(e?.message ?? '');
     if (isNetwork) {
-      await enqueueMovement({ itemId, direction, qty, note, idempotencyKey });
+      await enqueue();
       return { queued: true, idempotencyKey };
     }
     throw e;

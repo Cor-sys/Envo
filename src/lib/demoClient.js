@@ -145,19 +145,36 @@ let itemPrices = [
     created_at: '2026-04-12T09:00:00Z', updated_at: '2026-04-12T09:00:00Z' },
 ];
 
+// Seed transactions. The recent ones carry snapshot data so the Reports
+// Spend / Saved tiles light up in demo mode.
+const _now = new Date();
+const _today = new Date(_now); _today.setHours(9, 0, 0, 0);
+const _twoDaysAgo  = new Date(_today); _twoDaysAgo.setDate(_twoDaysAgo.getDate() - 2);
+const _lastWeek    = new Date(_today); _lastWeek.setDate(_lastWeek.getDate() - 7);
+const _lastMonth   = new Date(_today); _lastMonth.setDate(_lastMonth.getDate() - 25);
+
 let transactions = [
   { id: 'demo-txn-1', item_id: 'demo-001', direction: 'in',  qty: 12,
     staff_id: fakeUser.id, staff_label: 'Demo User', note: 'Restock',
     occurred_at: '2026-04-12T09:00:00Z' },
   { id: 'demo-txn-2', item_id: 'demo-001', direction: 'out', qty: 2,
     staff_id: fakeUser.id, staff_label: 'Demo User', note: 'Hallway B fixtures',
-    occurred_at: '2026-05-01T13:20:00Z' },
+    occurred_at: _lastMonth.toISOString() },
   { id: 'demo-txn-3', item_id: 'demo-005', direction: 'out', qty: 2,
     staff_id: fakeUser.id, staff_label: 'Demo User', note: 'Cleaning brush parts',
     occurred_at: '2026-05-10T14:30:00Z' },
   { id: 'demo-txn-4', item_id: 'demo-008', direction: 'out', qty: 3,
     staff_id: fakeUser.id, staff_label: 'Demo User', note: 'Last 3 — need to reorder',
     occurred_at: '2026-05-12T11:00:00Z' },
+  // Snapshot-bearing rows tied to items that carry priced quotes.
+  { id: 'demo-txn-5', item_id: 'demo-002', direction: 'out', qty: 4,
+    staff_id: fakeUser.id, staff_label: 'Demo User', note: 'Stark Nursing fixtures',
+    unit_cost_snapshot: 5.40, max_price_snapshot: 6.97, vendor_snapshot: 'Grainger',
+    occurred_at: _lastWeek.toISOString() },
+  { id: 'demo-txn-6', item_id: 'demo-002', direction: 'out', qty: 6,
+    staff_id: fakeUser.id, staff_label: 'Demo User', note: 'Wilson Building',
+    unit_cost_snapshot: 5.40, max_price_snapshot: 6.97, vendor_snapshot: 'Grainger',
+    occurred_at: _twoDaysAgo.toISOString() },
 ];
 
 // ---------- view helpers ----------
@@ -256,7 +273,14 @@ function makeBuilder(table) {
     select() { return builder; },
     eq(col, val)   { rows = rows.filter(r => r[col] === val); return builder; },
     is(col, val)   { rows = rows.filter(r => (val === null ? r[col] == null : r[col] === val)); return builder; },
+    not(col, _op, val) {
+      // Only the "is not null" form is used by getSpendReport.
+      if (val === null) rows = rows.filter(r => r[col] != null);
+      return builder;
+    },
     in(col, vals)  { const s = new Set(vals); rows = rows.filter(r => s.has(r[col])); return builder; },
+    gte(col, val)  { rows = rows.filter(r => r[col] != null && r[col] >= val); return builder; },
+    lt(col, val)   { rows = rows.filter(r => r[col] != null && r[col] <  val); return builder; },
     or()           { return builder; },  // search ilike — ignored in demo (returns full set)
     order(col, opts = {}) { orderBys.push({ col, ascending: opts.ascending !== false }); return builder; },
     limit(n)       { limit = n; return builder; },
@@ -424,6 +448,9 @@ export const demoClient = {
       staff_id: fakeUser.id,
       staff_label: fakeUser.user_metadata.full_name,
       note: args.p_note ?? null,
+      unit_cost_snapshot: args.p_unit_cost_snapshot ?? null,
+      max_price_snapshot: args.p_max_price_snapshot ?? null,
+      vendor_snapshot:    args.p_vendor_snapshot ?? null,
       occurred_at: new Date().toISOString(),
     };
     transactions = [txn, ...transactions];

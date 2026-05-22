@@ -3,11 +3,15 @@ import { Link } from 'react-router-dom';
 import {
   getInventorySnapshot,
   getRecentActivity,
+  getSpendReport,
+  rangeForPreset,
+  REPORT_PRESETS,
   summarize,
 } from '../lib/reports.js';
 import { getMyRecentItemIds, itemTypeLabel } from '../lib/items.js';
+import { formatMoney } from '../lib/prices.js';
 import { photoUrl } from '../lib/photos.js';
-import { ArrowDown, ArrowUp } from 'lucide-react';
+import { ArrowDown, ArrowUp, TrendingDown, TrendingUp } from 'lucide-react';
 import StatusPill from '../components/StatusPill.jsx';
 import OrderButton from '../components/OrderButton.jsx';
 import ErrorBanner from '../components/ErrorBanner.jsx';
@@ -65,14 +69,14 @@ export default function Reports() {
   const [activity, setActivity] = useState(null);
   const [recentIds, setRecentIds] = useState([]);
   const [error, setError]       = useState(null);
+  const [preset, setPreset]     = useState('this-month');
+  const [spend, setSpend]       = useState(null);
 
   useEffect(() => {
     let cancelled = false;
     Promise.all([
       getInventorySnapshot(),
       getRecentActivity(25),
-      // Recently-scanned ids — catch any error here so a transactions hiccup
-      // doesn't take down the rest of the page.
       getMyRecentItemIds(8).catch(() => []),
     ])
       .then(([i, a, ids]) => {
@@ -84,6 +88,18 @@ export default function Reports() {
       .catch((e) => { if (!cancelled) setError(e.message); });
     return () => { cancelled = true; };
   }, []);
+
+  // Spend report — re-runs whenever the preset changes. Soft-fail like
+  // everything else on the page: if the cost-tracking schema isn't there
+  // yet (older DB), we just hide the section.
+  useEffect(() => {
+    let cancelled = false;
+    const { from, to } = rangeForPreset(preset);
+    getSpendReport({ from, to })
+      .then((r) => { if (!cancelled) setSpend(r); })
+      .catch(() => { if (!cancelled) setSpend(null); });
+    return () => { cancelled = true; };
+  }, [preset]);
 
   const summary = useMemo(() => (items ? summarize(items) : null), [items]);
 
@@ -125,6 +141,117 @@ export default function Reports() {
       <p className="text-xs text-slate-500 print:text-slate-700 -mt-3">
         Snapshot as of {new Date().toLocaleString()}.
       </p>
+
+      {/* Spend / Saved / Drift tiles — driven by transaction snapshots
+          captured at scan time. Picker controls the period. */}
+      {spend && (
+        <section className="space-y-2 report-section">
+          <div className="flex items-center justify-between gap-2 no-print">
+            <h3 className="text-sm font-medium text-slate-300">Spend</h3>
+            <div className="chip-row no-print">
+              {REPORT_PRESETS.map((p) => (
+                <button
+                  key={p.key}
+                  type="button"
+                  onClick={() => setPreset(p.key)}
+                  className={preset === p.key ? 'chip-active' : 'chip-inactive'}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2">
+            <div className="surface p-3 print:border-slate-300">
+              <div className="eyebrow print:text-slate-700">Spent</div>
+              <div className="text-2xl font-semibold tabular-nums mt-0.5 text-slate-100 print:text-slate-900">
+                {formatMoney(spend.spent)}
+              </div>
+              {spend.missingPricingCount > 0 && (
+                <div className="text-[11px] text-slate-500 mt-1">
+                  {spend.missingPricingCount} txn{spend.missingPricingCount === 1 ? '' : 's'} without pricing
+                </div>
+              )}
+            </div>
+            <div className="surface p-3 print:border-slate-300">
+              <div className="eyebrow print:text-slate-700">Saved</div>
+              <div className="text-2xl font-semibold tabular-nums mt-0.5 text-emerald-300 print:text-emerald-700">
+                {formatMoney(spend.saved)}
+              </div>
+              <div className="text-[11px] text-slate-500 mt-1">vs. highest quote</div>
+            </div>
+            <div className="surface p-3 print:border-slate-300">
+              <div className="eyebrow print:text-slate-700">Drift</div>
+              <div className={`text-2xl font-semibold tabular-nums mt-0.5 inline-flex items-center gap-1 ${
+                spend.avgDrift == null
+                  ? 'text-slate-500'
+                  : spend.avgDrift > 0
+                    ? 'text-red-300 print:text-red-700'
+                    : 'text-emerald-300 print:text-emerald-700'
+              }`}>
+                {spend.avgDrift == null
+                  ? '—'
+                  : (
+                    <>
+                      {spend.avgDrift > 0
+                        ? <TrendingUp size={18} strokeWidth={2.2} />
+                        : <TrendingDown size={18} strokeWidth={2.2} />}
+                      {(spend.avgDrift >= 0 ? '+' : '')}{(spend.avgDrift * 100).toFixed(1)}%
+                    </>
+                  )}
+              </div>
+              <div className="text-[11px] text-slate-500 mt-1">avg price change vs. last buy</div>
+            </div>
+          </div>
+
+          {spend.byCategory.length > 0 && (() => {
+            const maxSpent = Math.max(...spend.byCategory.map((c) => c.spent));
+            return (
+              <div className="surface p-3 space-y-2 print:border-slate-300">
+                <div className="eyebrow print:text-slate-700">By category</div>
+                <ul className="space-y-1.5">
+                  {spend.byCategory.map((c) => {
+                    const pct = maxSpent > 0 ? (c.spent / maxSpent) * 100 : 0;
+                    return (
+                      <li key={c.category} className="space-y-0.5">
+                        <div className="flex items-baseline justify-between text-xs">
+                          <span className="text-slate-300 truncate">{c.category}</span>
+                          <span className="tabular-nums text-slate-100">{formatMoney(c.spent)}</span>
+                        </div>
+                        <div className="h-1 rounded bg-slate-800 overflow-hidden">
+                          <div className="h-full bg-sage-500" style={{ width: `${pct}%` }} />
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            );
+          })()}
+
+          {spend.topVendors.length > 0 && (
+            <div className="surface p-3 space-y-2 print:border-slate-300">
+              <div className="eyebrow print:text-slate-700">Top vendors</div>
+              <ul className="divide-y divide-slate-800">
+                {spend.topVendors.map((v) => (
+                  <li key={v.vendor} className="flex items-baseline justify-between gap-2 py-1.5 text-sm">
+                    <span className="text-slate-100 truncate">{v.vendor}</span>
+                    <span className="text-slate-500 text-xs tabular-nums shrink-0">
+                      {v.count} order{v.count === 1 ? '' : 's'} ·{' '}
+                      <span className="text-slate-200">{formatMoney(v.spent)}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <p className="text-[10.5px] text-slate-500 print:text-slate-700">
+            Spend reflects entered unit prices. Tax and shipping are not tracked.
+          </p>
+        </section>
+      )}
 
       {recentItems.length > 0 && (
         <section className="space-y-2 no-print">

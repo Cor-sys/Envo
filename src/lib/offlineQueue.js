@@ -71,13 +71,28 @@ export async function getPending() {
   return req(store.getAll());
 }
 
-export async function enqueueMovement({ itemId, direction, qty, note = null, idempotencyKey }) {
+// Snapshot fields (unitCostSnapshot / maxPriceSnapshot / vendorSnapshot)
+// are captured at scan time by the caller and persisted on the queue
+// entry — so a queued movement that drains hours later still records
+// the price the staffer saw, not the price as of the drain. Critical
+// for offline correctness of historical spend reports.
+//
+// Legacy queue entries (enqueued before snapshot capture shipped) won't
+// have these fields; the drain treats undefined as null and lands the
+// transaction with NULL snapshots, which the Reports rollups exclude.
+export async function enqueueMovement({
+  itemId, direction, qty, note = null, idempotencyKey,
+  unitCostSnapshot = null, maxPriceSnapshot = null, vendorSnapshot = null,
+}) {
   const entry = {
     idempotencyKey,
     itemId,
     direction,
     qty,
     note,
+    unitCostSnapshot,
+    maxPriceSnapshot,
+    vendorSnapshot,
     enqueuedAt: new Date().toISOString(),
     attempts: 0,
     lastError: null,
@@ -125,6 +140,9 @@ export async function drainQueue(supabase) {
           p_qty: entry.qty,
           p_note: entry.note,
           p_idempotency_key: entry.idempotencyKey,
+          p_unit_cost_snapshot: entry.unitCostSnapshot ?? null,
+          p_max_price_snapshot: entry.maxPriceSnapshot ?? null,
+          p_vendor_snapshot:    entry.vendorSnapshot   ?? null,
         });
         if (error) throw error;
         await removeEntry(entry.id);
