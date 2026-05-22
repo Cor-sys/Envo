@@ -1,12 +1,36 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   getInventorySnapshot,
   getRecentActivity,
   summarize,
 } from '../lib/reports.js';
-import { itemTypeLabel } from '../lib/items.js';
+import { getMyRecentItemIds, itemTypeLabel } from '../lib/items.js';
+import { photoUrl } from '../lib/photos.js';
 import StatusPill from '../components/StatusPill.jsx';
 import OrderButton from '../components/OrderButton.jsx';
+
+// Tiny thumbnail used by the Recently scanned strip. Falls back to the
+// item's first letter when there's no photo so the strip's row heights
+// stay consistent.
+function RecentThumb({ item }) {
+  const url = photoUrl(item.image_path);
+  if (url) {
+    return (
+      <img
+        src={url}
+        alt=""
+        loading="lazy"
+        className="h-16 w-16 rounded-lg object-cover bg-slate-800 border border-slate-800 shrink-0"
+      />
+    );
+  }
+  return (
+    <div className="h-16 w-16 rounded-lg bg-slate-800/70 border border-slate-800 shrink-0 flex items-center justify-center text-slate-500 text-sm font-medium">
+      {(item.name ?? '?').slice(0, 1).toUpperCase()}
+    </div>
+  );
+}
 
 // Reports screen (BRIEF §10): point-in-time roll-up that staff/owner can
 // print or Save-as-PDF straight from the browser. Print CSS (in index.css)
@@ -35,6 +59,7 @@ function Card({ label, value, tone = 'default' }) {
 export default function Reports() {
   const [items, setItems]       = useState(null);
   const [activity, setActivity] = useState(null);
+  const [recentIds, setRecentIds] = useState([]);
   const [error, setError]       = useState(null);
 
   useEffect(() => {
@@ -42,17 +67,28 @@ export default function Reports() {
     Promise.all([
       getInventorySnapshot(),
       getRecentActivity(25),
+      // Recently-scanned ids — catch any error here so a transactions hiccup
+      // doesn't take down the rest of the page.
+      getMyRecentItemIds(8).catch(() => []),
     ])
-      .then(([i, a]) => {
+      .then(([i, a, ids]) => {
         if (cancelled) return;
         setItems(i);
         setActivity(a);
+        setRecentIds(ids);
       })
       .catch((e) => { if (!cancelled) setError(e.message); });
     return () => { cancelled = true; };
   }, []);
 
   const summary = useMemo(() => (items ? summarize(items) : null), [items]);
+
+  // Map the recent ids onto the full item snapshot, preserving recency order.
+  const recentItems = useMemo(() => {
+    if (!items || recentIds.length === 0) return [];
+    const byId = new Map(items.map((it) => [it.id, it]));
+    return recentIds.map((id) => byId.get(id)).filter(Boolean);
+  }, [items, recentIds]);
 
   if (error) return <div className="p-3 text-red-300">{error}</div>;
   if (!items || !activity || !summary) {
@@ -75,6 +111,30 @@ export default function Reports() {
       <p className="text-xs text-slate-500 print:text-slate-700 -mt-3">
         Snapshot as of {new Date().toLocaleString()}.
       </p>
+
+      {recentItems.length > 0 && (
+        <section className="space-y-2 no-print">
+          <h3 className="text-sm font-medium text-slate-300">Recently scanned</h3>
+          <div className="flex gap-2 overflow-x-auto -mx-3 px-3 pb-1">
+            {recentItems.map((it) => (
+              <Link
+                key={it.id}
+                to={`/items/${it.id}`}
+                className="shrink-0 w-24 surface-interactive p-2 flex flex-col items-center gap-1.5"
+              >
+                <RecentThumb item={it} />
+                <div className="text-[11px] text-slate-200 line-clamp-2 text-center leading-tight w-full">
+                  {it.name}
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-slate-300 tabular-nums">{it.qty}</span>
+                  <StatusPill status={it.status} />
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="space-y-2 report-section">
         <h3 className="text-sm font-medium text-slate-300 print:text-slate-900">Summary</h3>

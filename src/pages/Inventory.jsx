@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronRight, Plus, Printer } from 'lucide-react';
-import { ITEM_TYPES, getMyRecentItemIds, itemTypeLabel, listItems } from '../lib/items.js';
+import { ITEM_TYPES, itemTypeLabel, listItems } from '../lib/items.js';
 import { photoUrl } from '../lib/photos.js';
 import StatusPill from '../components/StatusPill.jsx';
 import PullToRefresh from '../components/PullToRefresh.jsx';
@@ -59,7 +59,6 @@ function saveCollapsed(set) {
 
 export default function Inventory() {
   const [items, setItems] = useState(null);
-  const [recentIds, setRecentIds] = useState([]);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [attentionOnly, setAttentionOnly] = useState(false);
@@ -94,15 +93,8 @@ export default function Inventory() {
   const load = useCallback(async () => {
     setError(null);
     try {
-      const [data, ids] = await Promise.all([
-        listItems({ search, itemType: typeFilter || undefined }),
-        // Recent items shouldn't filter by the search box — they're always
-        // relevant. Catch any error here so a transactions-table hiccup
-        // doesn't take down Inventory.
-        getMyRecentItemIds(8).catch(() => []),
-      ]);
+      const data = await listItems({ search, itemType: typeFilter || undefined });
       setItems(data);
-      setRecentIds(ids);
     } catch (e) {
       setError(e.message);
     }
@@ -168,15 +160,6 @@ export default function Inventory() {
   }, [collapsed, groupedVisible]);
 
   // Recent items: look them up in the full inventory list, preserving the
-  // recency order returned by the txn query. Hidden when filters/search are
-  // active (they'd compete with the main result set).
-  const recentItems = useMemo(() => {
-    if (!items || recentIds.length === 0) return [];
-    if (search.trim() || typeFilter || attentionOnly) return [];
-    const byId = new Map(items.map((it) => [it.id, it]));
-    return recentIds.map((id) => byId.get(id)).filter(Boolean);
-  }, [items, recentIds, search, typeFilter, attentionOnly]);
-
   const needsAttention = counts.out + counts.low;
 
   return (
@@ -224,32 +207,6 @@ export default function Inventory() {
               </span>
             </div>
           </button>
-        )}
-
-        {recentItems.length > 0 && (
-          <section>
-            <div className="text-[11px] uppercase tracking-wide text-slate-500 mb-1.5 px-1">
-              Recently scanned
-            </div>
-            <div className="flex gap-2 overflow-x-auto -mx-3 px-3 pb-1">
-              {recentItems.map((it) => (
-                <Link
-                  key={it.id}
-                  to={`/items/${it.id}`}
-                  className="shrink-0 w-24 surface-interactive p-2 flex flex-col items-center gap-1.5"
-                >
-                  <Thumb item={it} size="lg" />
-                  <div className="text-[11px] text-slate-200 line-clamp-2 text-center leading-tight w-full">
-                    {it.name}
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs text-slate-300 tabular-nums">{it.qty}</span>
-                    <StatusPill status={it.status} />
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </section>
         )}
 
         <div className="chip-row">

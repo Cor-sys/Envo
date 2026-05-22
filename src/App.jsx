@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Link, NavLink, Route, Routes, useLocation } from 'react-router-dom';
 import { isConfigured, isDemoMode, supabase } from './lib/supabase.js';
-import { isAdmin, signOut, useSession, useStaffProfile } from './lib/auth.jsx';
+import { isAdmin, signOut, useStaffProfile } from './lib/auth.jsx';
 import { installQueueDrainer } from './lib/offlineQueue.js';
 import AuthGate from './components/AuthGate.jsx';
 import PendingBadge from './components/PendingBadge.jsx';
@@ -55,14 +55,8 @@ const tabs = [
 const tabOrder = tabs.map((t) => t.to);
 
 function AppShell() {
-  const { session } = useSession();
   const { profile } = useStaffProfile();
   const location = useLocation();
-  const me =
-    profile?.username ||
-    session?.user?.user_metadata?.full_name ||
-    session?.user?.user_metadata?.username ||
-    session?.user?.email || '';
   const admin = isAdmin(profile);
 
   // Install the offline-queue drainer once we have a live supabase client.
@@ -105,10 +99,7 @@ function AppShell() {
       )}
       <header className="sticky top-0 z-30 border-b border-slate-800/80 bg-slate-900/85 backdrop-blur">
         <div className="mx-auto max-w-app w-full px-3 sm:px-4 py-2.5 flex items-center justify-between gap-2">
-          <h1 className="wordmark shrink-0">
-            <span className="wordmark-dot" />
-            stockroom
-          </h1>
+          <h1 className="wordmark shrink-0">stockroom</h1>
           <div className="flex items-center gap-2 sm:gap-3 text-sm text-slate-400 min-w-0">
             <PendingBadge />
             {admin && (
@@ -119,7 +110,6 @@ function AppShell() {
                 Admin
               </Link>
             )}
-            <span className="hidden sm:inline truncate max-w-[10rem] text-slate-500">{me}</span>
             <button
               onClick={() => signOut()}
               className="text-xs sm:text-sm text-slate-500 hover:text-slate-200 transition-colors shrink-0"
