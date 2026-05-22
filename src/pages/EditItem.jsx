@@ -145,7 +145,7 @@ export default function EditItem() {
   }
 
   if (!loaded) return <div className="p-3 text-slate-400">Loading…</div>;
-  if (loaded && !v && error) return <div className="p-3 text-red-400">{error}</div>;
+  if (loaded && !v && error) return <div className="p-3 text-red-700">{error}</div>;
   if (!v) return <div className="p-3 text-slate-400">Item not found.</div>;
 
   const inputCls = 'mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 placeholder-slate-500';
@@ -263,7 +263,7 @@ export default function EditItem() {
         on the item page or the Scan tab — those go through the activity log.
       </p>
 
-      {error && <p className="text-red-400 text-sm">{error}</p>}
+      {error && <p className="text-red-700 text-sm">{error}</p>}
 
       <div className="flex gap-2 pt-2">
         <button type="button" onClick={() => nav(-1)} className="tap-secondary flex-1">

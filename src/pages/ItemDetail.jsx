@@ -88,7 +88,7 @@ export default function ItemDetail() {
     }
   }
 
-  if (!item && error) return <div className="p-3 text-red-400">{error}</div>;
+  if (!item && error) return <div className="p-3 text-red-700">{error}</div>;
   if (!item && loaded) return <div className="p-3 text-slate-400">Item not found.</div>;
   if (!item) return <div className="p-3 text-slate-400">Loading…</div>;
 
@@ -137,7 +137,7 @@ export default function ItemDetail() {
         </div>
         <div className="text-sm text-slate-400">{subParts.join(' · ')}</div>
         {item.needs_label && (
-          <div className="text-xs text-amber-300">
+          <div className="text-xs text-amber-700">
             no factory barcode — needs printed QR label
           </div>
         )}
@@ -146,10 +146,10 @@ export default function ItemDetail() {
       {needsReorder && (
         <div className="rounded-2xl border border-honey-500/30 bg-honey-500/5 p-3 flex items-center justify-between gap-3">
           <div className="text-sm">
-            <div className="font-medium text-honey-200">
+            <div className="font-medium text-honey-700">
               {item.status === 'out' ? 'Out of stock' : 'Low stock'}
             </div>
-            <div className="text-xs text-honey-200/70">
+            <div className="text-xs text-honey-700/70">
               {md.purchase_url ? 'Tap to reorder from supplier.' : 'Tap to search the web.'}
             </div>
           </div>
@@ -224,7 +224,7 @@ export default function ItemDetail() {
           </div>
         </div>
 
-        {error && <p className="text-red-400 text-sm">{error}</p>}
+        {error && <p className="text-red-700 text-sm">{error}</p>}
       </div>
 
       <section className="space-y-2">
@@ -254,7 +254,7 @@ export default function ItemDetail() {
                   href={md.purchase_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-honey-400 hover:text-honey-300 underline-offset-2 hover:underline truncate inline-block max-w-full align-bottom"
+                  className="text-honey-600 hover:text-honey-600 underline-offset-2 hover:underline truncate inline-block max-w-full align-bottom"
                 >
                   {md.purchase_url}
                 </a>
@@ -281,7 +281,7 @@ export default function ItemDetail() {
             {txns.map((t) => (
               <li key={t.id} className="flex items-center justify-between px-3 py-2 text-sm">
                 <div>
-                  <span className={t.direction === 'in' ? 'text-emerald-400' : 'text-red-400'}>
+                  <span className={t.direction === 'in' ? 'text-emerald-700' : 'text-red-700'}>
                     {t.direction === 'in' ? '+' : '−'}{t.qty}
                   </span>
                   <span className="ml-2 text-slate-400">{t.staff_label || '—'}</span>

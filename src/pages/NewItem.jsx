@@ -242,7 +242,7 @@ export default function NewItem() {
         </fieldset>
       )}
 
-      {error && <p className="text-red-400 text-sm">{error}</p>}
+      {error && <p className="text-red-700 text-sm">{error}</p>}
 
       <div className="flex gap-2 pt-2">
         <button type="button" onClick={() => nav(-1)} className="tap-secondary flex-1">

@@ -17,9 +17,9 @@ import OrderButton from '../components/OrderButton.jsx';
 function Card({ label, value, tone = 'default' }) {
   const toneCls = {
     default: 'bg-slate-900 border-slate-800 text-slate-100',
-    out:     'bg-red-500/10 border-red-500/30 text-red-200',
-    low:     'bg-amber-500/10 border-amber-500/30 text-amber-200',
-    ok:      'bg-emerald-500/10 border-emerald-500/30 text-emerald-200',
+    out:     'bg-red-500/10 border-red-500/30 text-red-800',
+    low:     'bg-amber-500/10 border-amber-500/30 text-amber-800',
+    ok:      'bg-emerald-500/10 border-emerald-500/30 text-emerald-800',
   }[tone];
   return (
     <div className={`rounded-2xl border p-3 ${toneCls}`}>
@@ -52,7 +52,7 @@ export default function Reports() {
   const summary = useMemo(() => (items ? summarize(items) : null), [items]);
   const reorder = useMemo(() => (items ? deriveReorderList(items) : null), [items]);
 
-  if (error) return <div className="p-3 text-red-400">{error}</div>;
+  if (error) return <div className="p-3 text-red-700">{error}</div>;
   if (!items || !activity || !summary || !reorder) {
     return <div className="p-3 text-slate-400">Loading…</div>;
   }
@@ -93,8 +93,8 @@ export default function Reports() {
               <div className="flex items-center gap-3 text-xs">
                 <span className="text-slate-400 print:text-slate-700 tabular-nums">{row.count} items</span>
                 <span className="text-slate-500 print:text-slate-700 tabular-nums">{row.qty} on hand</span>
-                {row.out > 0 && <span className="text-red-300 tabular-nums">{row.out} out</span>}
-                {row.low > 0 && <span className="text-amber-300 tabular-nums">{row.low} low</span>}
+                {row.out > 0 && <span className="text-red-700 tabular-nums">{row.out} out</span>}
+                {row.low > 0 && <span className="text-amber-700 tabular-nums">{row.low} low</span>}
               </div>
             </div>
           ))}
@@ -204,8 +204,8 @@ export default function Reports() {
                 </div>
                 <div className="text-right text-xs">
                   <div className={`tabular-nums font-medium ${
-                    t.direction === 'in' ? 'text-emerald-400 print:text-emerald-700'
-                                         : 'text-red-400 print:text-red-700'
+                    t.direction === 'in' ? 'text-emerald-700 print:text-emerald-700'
+                                         : 'text-red-700 print:text-red-700'
                   }`}>
                     {t.direction === 'in' ? '+' : '−'}{t.qty}
                   </div>

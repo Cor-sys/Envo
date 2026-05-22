@@ -3,16 +3,16 @@
 @tailwind utilities;
 
 /* ---------------------------------------------------------------------------
- * Stockroom theme — pale pine canvas, walnut text, muted brass accent.
+ * Stockroom theme — aged kraft canvas, walnut text, espresso-brass accent.
  *
- *   Canvas: pine cream (slate-950 = #f5ead2). Looks almost like fresh-sawn
- *           pine board — pale, warm, low-saturation. Easy on the eyes.
- *   Surface: barely-lifted card (slate-900 = #fbf5e3). Cards sit on the
- *           pine board with a hairline border, no heavy shadow.
- *   Text:   walnut (slate-100 = #3d2b1a). Dark enough for long reads in
- *           bright shop light. Hierarchy fades through tan to lighter.
- *   Accent: muted brass (honey-500 = #8d6a2e). Primary buttons + brand dot
- *           only. Status colors (emerald/amber/red) stay semantic.
+ *   Canvas: kraft paper (slate-950 = #c4ad7a). Mid-light warm wood that
+ *           reads as a real material, not blank paper.
+ *   Surface: RECESSED card (slate-900 = #b39966). Cards are slightly darker
+ *           than the body so they look set INTO the wood, not floating
+ *           above it. A thin top highlight catches the edge of the recess.
+ *   Text:   deep walnut (slate-100 = #241a0c). Dark enough for shop light.
+ *   Accent: espresso brass (honey-500 = #6b4d1a). Primary buttons + brand
+ *           mark. Quiet — never used for decoration.
  *
  * Theme tokens live in tailwind.config.js; this file owns the components.
  * --------------------------------------------------------------------------- */
@@ -21,11 +21,11 @@
   body {
     @apply bg-slate-950 text-slate-100 antialiased;
     font-feature-settings: 'cv11', 'ss01', 'ss03'; /* Inter humanist tweaks */
-    /* Whisper-soft warmth in the corners — under 5% opacity. Pine doesn't
-       need a glow; it's already warm. */
+    /* Whisper-soft warmth in the corners — a hint of brass top-right and
+       deeper wood bottom-left so the canvas doesn't read as a flat plane. */
     background-image:
-      radial-gradient(at 100% 0%, rgba(141, 106, 46, 0.05) 0%, transparent 60%),
-      radial-gradient(at 0% 100%, rgba(192, 162, 110, 0.06) 0%, transparent 55%);
+      radial-gradient(at 100% 0%, rgba(107, 77, 26, 0.08) 0%, transparent 60%),
+      radial-gradient(at 0% 100%, rgba(70, 50, 20, 0.10) 0%, transparent 55%);
     background-attachment: fixed;
     color-scheme: light;
   }
@@ -71,14 +71,19 @@
   }
 
   /* ----- Surfaces ------------------------------------------------------- */
-  /* Cards barely lift off the pine — hairline border + a 1px highlight on
-     top, no heavy shadow. Reads as a flat plaque on a board, not a card. */
+  /* Cards are recessed into the wood — surface (slate-900) is darker than
+     body (slate-950). The thin highlight on the top edge of the card is
+     where light would catch the lip of a recess; a soft inner shadow on
+     the bottom mimics the depth. Subtle on purpose. */
   .surface {
     @apply rounded-xl border border-slate-800 bg-slate-900;
-    box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.55) inset;
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 235, 195, 0.18),
+      inset 0 -1px 0 0 rgba(40, 25, 8, 0.10),
+      0 1px 0 0 rgba(255, 240, 200, 0.10);
   }
   .surface-interactive {
-    @apply surface transition-colors hover:bg-slate-800/30 active:bg-slate-800/50;
+    @apply surface transition-colors hover:bg-slate-800/60 active:bg-slate-700/60;
   }
 
   /* ----- Status indicators (quiet) -------------------------------------- */

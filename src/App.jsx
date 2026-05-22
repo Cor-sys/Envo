@@ -91,43 +91,47 @@ function AppShell() {
   return (
     <div className="flex h-full flex-col">
       {isDemoMode && (
-        <div className="bg-amber-500/15 text-amber-200 text-[11px] font-medium text-center py-1 px-3 border-b border-amber-500/30">
+        <div className="bg-amber-500/15 text-amber-800 text-[11px] font-medium text-center py-1 px-3 border-b border-amber-500/30">
           Demo mode — all data is fake and changes don&rsquo;t persist.
         </div>
       )}
-      <header className="border-b border-slate-800/80 bg-slate-900/70 backdrop-blur px-4 py-3 flex items-center justify-between">
-        <h1 className="wordmark">
-          <span className="wordmark-dot" />
-          stockroom
-        </h1>
-        <div className="flex items-center gap-3 text-sm text-slate-400">
-          <PendingBadge />
-          {admin && (
-            <Link
-              to="/admin"
-              className="text-honey-400 hover:text-honey-300 transition-colors text-xs uppercase tracking-wide font-medium"
+      <header className="border-b border-slate-800/80 bg-slate-900/70 backdrop-blur">
+        <div className="mx-auto max-w-app w-full px-4 py-3 flex items-center justify-between">
+          <h1 className="wordmark">
+            <span className="wordmark-dot" />
+            stockroom
+          </h1>
+          <div className="flex items-center gap-3 text-sm text-slate-400">
+            <PendingBadge />
+            {admin && (
+              <Link
+                to="/admin"
+                className="text-honey-500 hover:text-honey-600 transition-colors text-xs uppercase tracking-wide font-medium"
+              >
+                Admin
+              </Link>
+            )}
+            <span className="hidden sm:inline truncate max-w-[12rem]">{me}</span>
+            <button
+              onClick={() => signOut()}
+              className="text-slate-500 hover:text-slate-200 transition-colors"
             >
-              Admin
-            </Link>
-          )}
-          <span className="hidden sm:inline truncate max-w-[12rem]">{me}</span>
-          <button
-            onClick={() => signOut()}
-            className="text-slate-500 hover:text-slate-200 transition-colors"
-          >
-            Sign out
-          </button>
+              Sign out
+            </button>
+          </div>
         </div>
       </header>
 
       <main className="flex-1 overflow-y-auto pb-20">
-        {isTabRoute ? (
-          <SwipeRoutes tabOrder={tabOrder}>{routes}</SwipeRoutes>
-        ) : routes}
+        <div className="mx-auto max-w-app w-full">
+          {isTabRoute ? (
+            <SwipeRoutes tabOrder={tabOrder}>{routes}</SwipeRoutes>
+          ) : routes}
+        </div>
       </main>
 
       <nav className="fixed inset-x-0 bottom-0 border-t border-slate-800/80 bg-slate-900/85 backdrop-blur">
-        <ul className="mx-auto grid max-w-screen-sm grid-cols-4">
+        <ul className="mx-auto grid max-w-app grid-cols-4">
           {tabs.map((t) => (
             <li key={t.to} className="relative">
               <NavLink

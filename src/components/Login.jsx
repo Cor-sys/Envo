@@ -61,7 +61,7 @@ export default function Login() {
           />
         </label>
 
-        {error && <p className="text-red-400 text-sm">{error}</p>}
+        {error && <p className="text-red-700 text-sm">{error}</p>}
 
         <button className="tap-primary w-full" type="submit" disabled={busy}>
           {busy ? 'Signing in…' : 'Sign in'}
@@ -70,7 +70,7 @@ export default function Login() {
 
       <div className="border-t border-slate-800 pt-3 text-center">
         <p className="text-xs text-slate-500 mb-1">First time here?</p>
-        <Link to="/invite" className="text-sm text-honey-400 hover:text-honey-300">
+        <Link to="/invite" className="text-sm text-honey-600 hover:text-honey-600">
           I have an invite code →
         </Link>
       </div>

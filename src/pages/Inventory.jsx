@@ -194,16 +194,16 @@ export default function Inventory() {
           >
             <div className="flex items-center justify-between gap-2">
               <div className="text-sm">
-                <span className="font-medium text-amber-200">
+                <span className="font-medium text-amber-800">
                   {counts.out > 0 && (<>{counts.out} OUT </>)}
-                  {counts.out > 0 && counts.low > 0 && (<span className="text-amber-300/60">· </span>)}
+                  {counts.out > 0 && counts.low > 0 && (<span className="text-amber-700/60">· </span>)}
                   {counts.low > 0 && (<>{counts.low} LOW</>)}
                 </span>
-                <span className="text-amber-300/70 ml-2">
+                <span className="text-amber-700/70 ml-2">
                   {attentionOnly ? '— showing attention items only' : '— tap to focus'}
                 </span>
               </div>
-              <span className="text-xs text-amber-300/70 shrink-0">
+              <span className="text-xs text-amber-700/70 shrink-0">
                 {attentionOnly ? 'show all' : 'focus'}
               </span>
             </div>
@@ -252,7 +252,7 @@ export default function Inventory() {
           ))}
         </div>
 
-        {error && <p className="text-red-400 text-sm">{error}</p>}
+        {error && <p className="text-red-700 text-sm">{error}</p>}
 
         {items === null && !error && (
           <p className="text-slate-400">Loading…</p>
@@ -354,7 +354,7 @@ export default function Inventory() {
                             <div className="text-xs text-slate-400 truncate mt-0.5">
                               {subParts.join(' · ')}
                               {it.needs_label && (
-                                <> · <span className="text-amber-300">needs label</span></>
+                                <> · <span className="text-amber-700">needs label</span></>
                               )}
                             </div>
                           </div>
