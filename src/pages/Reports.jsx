@@ -112,48 +112,89 @@ export default function Reports() {
             Nothing to reorder — every item is above its threshold.
           </p>
         ) : (
-          // Horizontal scroll lives INSIDE the section so the page itself
-          // never overflows — critical on iPhone where the viewport is
-          // narrower than the table.
-          <div className="-mx-3 px-3 overflow-x-auto print:overflow-visible">
-            <table className="w-full min-w-[36rem] text-sm print:min-w-0">
-              <thead className="text-[11px] uppercase tracking-wide text-slate-500 print:text-slate-700">
-                <tr className="text-left">
-                  <th className="py-1 pr-2 font-medium">Item</th>
-                  <th className="py-1 pr-2 font-medium">Type</th>
-                  <th className="py-1 pr-2 font-medium text-right">On hand</th>
-                  <th className="py-1 pr-2 font-medium text-right">Threshold</th>
-                  <th className="py-1 pr-2 font-medium text-right">Order qty</th>
-                  <th className="py-1 pr-2 font-medium">Status</th>
-                  <th className="py-1 font-medium no-print"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800 print:divide-slate-300">
-                {reorder.map((r) => (
-                  <tr key={r.id}>
-                    <td className="py-1 pr-2 text-slate-100 print:text-slate-900">
-                      <div className="truncate max-w-[12rem]">{r.name}</div>
-                      <div className="text-[11px] text-slate-500 print:text-slate-700 font-mono">{r.sku}</div>
-                    </td>
-                    <td className="py-1 pr-2 text-slate-400 print:text-slate-700 whitespace-nowrap">{itemTypeLabel(r.item_type)}</td>
-                    <td className="py-1 pr-2 text-right tabular-nums">{r.qty}</td>
-                    <td className="py-1 pr-2 text-right tabular-nums text-slate-400 print:text-slate-700">{r.threshold}</td>
-                    <td className="py-1 pr-2 text-right tabular-nums font-medium">{r.suggested_qty}</td>
-                    <td className="py-1 pr-2"><StatusPill status={r.status} /></td>
-                    <td className="py-1 pl-2 no-print">
-                      <OrderButton
-                        item={r}
-                        variant="secondary"
-                        className="text-xs px-2 py-1 min-h-0 min-w-0"
-                      >
-                        Order
-                      </OrderButton>
-                    </td>
+          <>
+            {/* Mobile (< md): stacked cards. The Order button is the primary
+                action so it sits full-width at the bottom of each card —
+                no horizontal scroll, always reachable with one thumb. The
+                same data the desktop table exposes is laid out as a 3-up
+                stat row above the button. Hidden when printing; the
+                desktop table prints instead. */}
+            <ul className="space-y-2 md:hidden print:hidden">
+              {reorder.map((r) => (
+                <li key={r.id} className="surface p-3 space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium text-slate-100 truncate">{r.name}</div>
+                      <div className="text-[11px] text-slate-500 font-mono mt-0.5 truncate">
+                        {r.sku} · {itemTypeLabel(r.item_type)}
+                      </div>
+                    </div>
+                    <StatusPill status={r.status} />
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div>
+                      <div className="eyebrow">On hand</div>
+                      <div className="text-base font-semibold tabular-nums text-slate-100 mt-0.5">{r.qty}</div>
+                    </div>
+                    <div>
+                      <div className="eyebrow">Threshold</div>
+                      <div className="text-base tabular-nums text-slate-400 mt-0.5">{r.threshold}</div>
+                    </div>
+                    <div>
+                      <div className="eyebrow">Order qty</div>
+                      <div className="text-base font-semibold tabular-nums text-honey-300 mt-0.5">{r.suggested_qty}</div>
+                    </div>
+                  </div>
+                  <OrderButton item={r} variant="primary" className="w-full">
+                    Order {r.suggested_qty}
+                  </OrderButton>
+                </li>
+              ))}
+            </ul>
+
+            {/* Tablet/desktop (≥ md) and print: dense table. The negative
+                margin + overflow-x-auto is kept as a defensive guard but
+                at ≥768px the table fits naturally. */}
+            <div className="hidden md:block print:block -mx-3 px-3 overflow-x-auto print:overflow-visible">
+              <table className="w-full text-sm print:min-w-0">
+                <thead className="text-[11px] uppercase tracking-wide text-slate-500 print:text-slate-700">
+                  <tr className="text-left">
+                    <th className="py-1 pr-2 font-medium">Item</th>
+                    <th className="py-1 pr-2 font-medium">Type</th>
+                    <th className="py-1 pr-2 font-medium text-right">On hand</th>
+                    <th className="py-1 pr-2 font-medium text-right">Threshold</th>
+                    <th className="py-1 pr-2 font-medium text-right">Order qty</th>
+                    <th className="py-1 pr-2 font-medium">Status</th>
+                    <th className="py-1 font-medium no-print"></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-slate-800 print:divide-slate-300">
+                  {reorder.map((r) => (
+                    <tr key={r.id}>
+                      <td className="py-1 pr-2 text-slate-100 print:text-slate-900">
+                        <div className="truncate max-w-[12rem]">{r.name}</div>
+                        <div className="text-[11px] text-slate-500 print:text-slate-700 font-mono">{r.sku}</div>
+                      </td>
+                      <td className="py-1 pr-2 text-slate-400 print:text-slate-700 whitespace-nowrap">{itemTypeLabel(r.item_type)}</td>
+                      <td className="py-1 pr-2 text-right tabular-nums">{r.qty}</td>
+                      <td className="py-1 pr-2 text-right tabular-nums text-slate-400 print:text-slate-700">{r.threshold}</td>
+                      <td className="py-1 pr-2 text-right tabular-nums font-medium">{r.suggested_qty}</td>
+                      <td className="py-1 pr-2"><StatusPill status={r.status} /></td>
+                      <td className="py-1 pl-2 no-print">
+                        <OrderButton
+                          item={r}
+                          variant="secondary"
+                          className="text-xs px-2 py-1 min-h-0 min-w-0"
+                        >
+                          Order
+                        </OrderButton>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </section>
 
