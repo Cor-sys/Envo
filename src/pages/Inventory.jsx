@@ -177,14 +177,6 @@ export default function Inventory() {
     return recentIds.map((id) => byId.get(id)).filter(Boolean);
   }, [items, recentIds, search, typeFilter, attentionOnly]);
 
-  function pillCls(active) {
-    return `shrink-0 rounded-full px-3 py-1 text-xs transition-colors ${
-      active
-        ? 'bg-honey-600 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.15)]'
-        : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-    }`;
-  }
-
   const needsAttention = counts.out + counts.low;
 
   return (
@@ -260,8 +252,12 @@ export default function Inventory() {
           </section>
         )}
 
-        <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-3 px-3">
-          <button type="button" onClick={() => setTypeFilter('')} className={pillCls(typeFilter === '')}>
+        <div className="chip-row">
+          <button
+            type="button"
+            onClick={() => setTypeFilter('')}
+            className={typeFilter === '' ? 'chip-active' : 'chip-inactive'}
+          >
             All
           </button>
           {ITEM_TYPES.map((t) => (
@@ -269,7 +265,7 @@ export default function Inventory() {
               type="button"
               key={t.value}
               onClick={() => setTypeFilter(t.value)}
-              className={pillCls(typeFilter === t.value)}
+              className={typeFilter === t.value ? 'chip-active' : 'chip-inactive'}
             >
               {t.label}
             </button>

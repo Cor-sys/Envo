@@ -97,6 +97,8 @@
   .pill-low::before{ @apply bg-amber-400; }
   .pill-out        { @apply pill text-red-300; }
   .pill-out::before{ @apply bg-red-400; }
+  .pill-muted        { @apply pill text-slate-400; }
+  .pill-muted::before{ @apply bg-slate-500; }
 
   /* ----- Navigation chrome --------------------------------------------- */
   .nav-active {
@@ -117,6 +119,29 @@
 
   .eyebrow {
     @apply text-[10.5px] font-semibold uppercase tracking-[0.08em] text-slate-400;
+  }
+
+  /* ----- Chips (filter pills, qty presets) ----------------------------- */
+  /* Same visual everywhere a "pick one of these" row appears. Inactive
+     chips are quiet on the canvas; active chips switch to brass so the
+     selection reads from across the screen. min-height keeps the tap
+     target ≥36px even at the smallest size used. */
+  .chip {
+    @apply shrink-0 inline-flex items-center gap-1 min-h-[34px] rounded-full
+           px-3 text-xs font-medium transition-colors tabular-nums select-none;
+  }
+  .chip-inactive {
+    @apply chip bg-slate-800 text-slate-300 hover:bg-slate-700;
+  }
+  .chip-active {
+    @apply chip bg-honey-600 text-white
+           shadow-[inset_0_1px_0_0_rgba(255,255,255,0.15)];
+  }
+  /* Horizontal-scrolling row of chips that extends to the screen edge
+     on narrow viewports. The negative margin + padding pair lets the
+     scroll bleed past the parent's padding without breaking layout. */
+  .chip-row {
+    @apply flex gap-1.5 overflow-x-auto pb-1 -mx-3 px-3;
   }
 }
 

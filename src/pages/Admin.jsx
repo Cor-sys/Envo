@@ -144,11 +144,11 @@ export default function Admin() {
               <li key={inv.id} className="surface p-3 space-y-2">
                 <div className="flex items-center justify-between gap-2">
                   <div className="font-mono text-base tracking-wider text-slate-100">{inv.code}</div>
-                  <span className={`pill ${
-                    status === 'used'    ? 'bg-slate-500/20 text-slate-300' :
-                    status === 'expired' ? 'bg-red-500/15 text-red-300' :
-                                           'bg-emerald-500/15 text-emerald-400'
-                  }`}>
+                  <span className={
+                    status === 'used'    ? 'pill-muted' :
+                    status === 'expired' ? 'pill-out' :
+                                           'pill-ok'
+                  }>
                     {status}
                   </span>
                 </div>
@@ -171,7 +171,7 @@ export default function Admin() {
                   <button
                     type="button"
                     onClick={() => remove(inv)}
-                    className="ml-auto text-xs px-2 py-1 text-red-300 hover:text-red-300 hover:bg-red-500/10 rounded transition-colors"
+                    className="ml-auto text-xs px-2 py-1 text-red-300 hover:text-red-200 hover:bg-red-500/10 rounded transition-colors"
                   >
                     {status === 'open' ? 'Revoke' : 'Delete'}
                   </button>
