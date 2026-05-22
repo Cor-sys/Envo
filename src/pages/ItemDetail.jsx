@@ -110,7 +110,7 @@ export default function ItemDetail() {
         </button>
         <Link
           to={`/items/${id}/edit`}
-          className="text-sm text-orange-400 hover:text-orange-300 transition-colors"
+          className="text-sm text-honey-400 hover:text-honey-300 transition-colors"
         >
           Edit
         </Link>
@@ -141,12 +141,12 @@ export default function ItemDetail() {
       </div>
 
       {needsReorder && (
-        <div className="rounded-2xl border border-orange-500/30 bg-orange-500/5 p-3 flex items-center justify-between gap-3">
+        <div className="rounded-2xl border border-honey-500/30 bg-honey-500/5 p-3 flex items-center justify-between gap-3">
           <div className="text-sm">
-            <div className="font-medium text-orange-200">
+            <div className="font-medium text-honey-200">
               {item.status === 'out' ? 'Out of stock' : 'Low stock'}
             </div>
-            <div className="text-xs text-orange-200/70">
+            <div className="text-xs text-honey-200/70">
               {md.purchase_url ? 'Tap to reorder from supplier.' : 'Tap to search the web.'}
             </div>
           </div>
@@ -185,7 +185,7 @@ export default function ItemDetail() {
                   onClick={() => setAdjustQty(n)}
                   className={`shrink-0 rounded-lg px-2.5 py-1 text-sm tabular-nums transition-colors ${
                     Number(adjustQty) === n
-                      ? 'bg-orange-600 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.18)]'
+                      ? 'bg-honey-600 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.18)]'
                       : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                   }`}
                 >
@@ -250,7 +250,7 @@ export default function ItemDetail() {
                   href={md.purchase_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-orange-400 hover:text-orange-300 underline-offset-2 hover:underline truncate inline-block max-w-full align-bottom"
+                  className="text-honey-400 hover:text-honey-300 underline-offset-2 hover:underline truncate inline-block max-w-full align-bottom"
                 >
                   {md.purchase_url}
                 </a>

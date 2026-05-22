@@ -114,7 +114,7 @@ export default function Sds() {
                 onClick={() => setFilter(f.value)}
                 className={`shrink-0 rounded-full px-3 py-1 text-xs transition-colors ${
                   active
-                    ? 'bg-orange-600 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.15)]'
+                    ? 'bg-honey-600 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.15)]'
                     : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                 }`}
               >
@@ -329,7 +329,7 @@ function SdsEditor({ item, onClose, onSaved }) {
         )}
 
         <div className="border-t border-slate-800 pt-3 text-xs text-slate-400">
-          See full item page: <Link to={`/items/${item.id}`} className="text-orange-400 hover:text-orange-300">{item.sku}</Link>
+          See full item page: <Link to={`/items/${item.id}`} className="text-honey-400 hover:text-honey-300">{item.sku}</Link>
         </div>
 
         {error && <p className="text-red-400 text-sm">{error}</p>}

@@ -70,7 +70,7 @@ export default function Login() {
 
       <div className="border-t border-slate-800 pt-3 text-center">
         <p className="text-xs text-slate-500 mb-1">First time here?</p>
-        <Link to="/invite" className="text-sm text-orange-400 hover:text-orange-300">
+        <Link to="/invite" className="text-sm text-honey-400 hover:text-honey-300">
           I have an invite code →
         </Link>
       </div>

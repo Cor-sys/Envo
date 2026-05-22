@@ -68,12 +68,12 @@ export default function PullToRefresh({ onRefresh, children }) {
         }}
       >
         <div
-          className="text-orange-400 text-xs flex items-center gap-2"
+          className="text-honey-400 text-xs flex items-center gap-2"
           style={{ opacity: refreshing ? 1 : indicatorOpacity }}
         >
           {refreshing ? (
             <>
-              <span className="inline-block h-3 w-3 rounded-full border-2 border-orange-400 border-t-transparent animate-spin" />
+              <span className="inline-block h-3 w-3 rounded-full border-2 border-honey-400 border-t-transparent animate-spin" />
               <span>Refreshing…</span>
             </>
           ) : (

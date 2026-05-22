@@ -155,7 +155,7 @@ export default function Inventory() {
   function pillCls(active) {
     return `shrink-0 rounded-full px-3 py-1 text-xs transition-colors ${
       active
-        ? 'bg-orange-600 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.15)]'
+        ? 'bg-honey-600 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.15)]'
         : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
     }`;
   }
