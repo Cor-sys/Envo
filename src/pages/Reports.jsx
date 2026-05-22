@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  deriveReorderList,
   getInventorySnapshot,
   getRecentActivity,
   summarize,
@@ -14,17 +13,21 @@ import OrderButton from '../components/OrderButton.jsx';
 // already hides the header + nav; this page also wraps each section in a
 // `.report-section` div so we can tune the print layout in one place.
 
+// Quiet summary tile: same slate canvas everywhere; the VALUE carries the
+// tone. Lets the page read as a clean grid of numbers instead of four
+// competing colored backgrounds — color stays meaningful because it's
+// reserved for actual status (red OUT / amber LOW / green OK).
 function Card({ label, value, tone = 'default' }) {
-  const toneCls = {
-    default: 'bg-slate-900 border-slate-800 text-slate-100',
-    out:     'bg-red-500/10 border-red-500/30 text-red-300',
-    low:     'bg-amber-500/10 border-amber-500/30 text-amber-200',
-    ok:      'bg-emerald-500/10 border-emerald-500/30 text-emerald-300',
+  const valueCls = {
+    default: 'text-slate-100',
+    out:     'text-red-300',
+    low:     'text-amber-300',
+    ok:      'text-emerald-300',
   }[tone];
   return (
-    <div className={`rounded-2xl border p-3 ${toneCls}`}>
-      <div className="text-[11px] uppercase tracking-wide opacity-70">{label}</div>
-      <div className="text-2xl font-semibold tabular-nums">{value}</div>
+    <div className="surface p-3 print:border-slate-300">
+      <div className="eyebrow print:text-slate-700">{label}</div>
+      <div className={`text-2xl font-semibold tabular-nums mt-0.5 ${valueCls} print:text-slate-900`}>{value}</div>
     </div>
   );
 }
@@ -50,10 +53,9 @@ export default function Reports() {
   }, []);
 
   const summary = useMemo(() => (items ? summarize(items) : null), [items]);
-  const reorder = useMemo(() => (items ? deriveReorderList(items) : null), [items]);
 
   if (error) return <div className="p-3 text-red-300">{error}</div>;
-  if (!items || !activity || !summary || !reorder) {
+  if (!items || !activity || !summary) {
     return <div className="p-3 text-slate-400">Loading…</div>;
   }
 
@@ -84,105 +86,62 @@ export default function Reports() {
         </div>
       </section>
 
-      <section className="space-y-2 report-section">
-        <h3 className="text-sm font-medium text-slate-300 print:text-slate-900">By type</h3>
-        <div className="surface print:border-slate-300 divide-y divide-slate-800 print:divide-slate-300">
-          {summary.byType.map((row) => (
-            <div key={row.type} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
-              <div className="text-slate-200 print:text-slate-900 min-w-0 truncate">
-                {itemTypeLabel(row.type)}
-              </div>
-              <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-0.5 text-xs shrink-0">
-                <span className="text-slate-400 print:text-slate-700 tabular-nums whitespace-nowrap">{row.count} items</span>
-                <span className="text-slate-500 print:text-slate-700 tabular-nums whitespace-nowrap">{row.qty} on hand</span>
-                {row.out > 0 && <span className="text-red-300 tabular-nums whitespace-nowrap">{row.out} out</span>}
-                {row.low > 0 && <span className="text-amber-300 tabular-nums whitespace-nowrap">{row.low} low</span>}
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
+      {/* Inventory: one section that combines the old "Reorder list" and
+          "Full inventory by type" views. Rows that need reorder get an
+          Order button inline; everything else is the same dense table
+          grouped by type. One section instead of two = less scrolling,
+          and the Order action sits in context with the item it refers to. */}
       <section className="space-y-2 report-section">
         <h3 className="text-sm font-medium text-slate-300 print:text-slate-900">
-          Reorder list <span className="text-slate-500 print:text-slate-700">({reorder.length})</span>
+          Inventory
+          {summary.out + summary.low > 0 && (
+            <span className="text-slate-500 print:text-slate-700 ml-1.5">
+              ({summary.out + summary.low} need reorder)
+            </span>
+          )}
         </h3>
-        {reorder.length === 0 ? (
-          <p className="text-sm text-slate-500 print:text-slate-700">
-            Nothing to reorder — every item is above its threshold.
-          </p>
-        ) : (
-          // One table for all sizes. With Order qty dropped the table is
-          // narrow enough that on iPhone it only needs a small horizontal
-          // nudge — but the scroll is scoped to this section's wrapper so
-          // the page itself never overflows.
-          <div className="-mx-3 px-3 overflow-x-auto print:overflow-visible">
-            <table className="w-full min-w-[28rem] text-sm print:min-w-0">
-              <thead className="text-[11px] uppercase tracking-wide text-slate-500 print:text-slate-700">
-                <tr className="text-left">
-                  <th className="py-1 pr-2 font-medium">Item</th>
-                  <th className="py-1 pr-2 font-medium">Type</th>
-                  <th className="py-1 pr-2 font-medium text-right">On hand</th>
-                  <th className="py-1 pr-2 font-medium text-right">Threshold</th>
-                  <th className="py-1 pr-2 font-medium">Status</th>
-                  <th className="py-1 font-medium no-print"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800 print:divide-slate-300">
-                {reorder.map((r) => (
-                  <tr key={r.id}>
-                    <td className="py-1 pr-2 text-slate-100 print:text-slate-900">
-                      <div className="truncate max-w-[12rem]">{r.name}</div>
-                      <div className="text-[11px] text-slate-500 print:text-slate-700 font-mono">{r.sku}</div>
-                    </td>
-                    <td className="py-1 pr-2 text-slate-400 print:text-slate-700 whitespace-nowrap">{itemTypeLabel(r.item_type)}</td>
-                    <td className="py-1 pr-2 text-right tabular-nums">{r.qty}</td>
-                    <td className="py-1 pr-2 text-right tabular-nums text-slate-400 print:text-slate-700">{r.threshold}</td>
-                    <td className="py-1 pr-2"><StatusPill status={r.status} /></td>
-                    <td className="py-1 pl-2 no-print">
-                      <OrderButton
-                        item={r}
-                        variant="secondary"
-                        className="text-xs px-2 py-1 min-h-0 min-w-0"
-                      >
-                        Order {r.suggested_qty}
-                      </OrderButton>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-
-      <section className="space-y-2 report-section">
-        <h3 className="text-sm font-medium text-slate-300 print:text-slate-900">Full inventory by type</h3>
         {summary.byType.map((group) => {
           const groupItems = items.filter((i) => i.item_type === group.type);
           return (
             <div key={group.type} className="space-y-1">
               <div className="text-xs uppercase tracking-wide text-slate-500 print:text-slate-700 mt-3">
                 {itemTypeLabel(group.type)} — {group.count} items, {group.qty} on hand
+                {group.out > 0 && <span className="text-red-300 ml-2 normal-case tracking-normal">{group.out} out</span>}
+                {group.low > 0 && <span className="text-amber-300 ml-2 normal-case tracking-normal">{group.low} low</span>}
               </div>
               <div className="-mx-3 px-3 overflow-x-auto print:overflow-visible">
                 <table className="w-full text-sm">
                   <tbody className="divide-y divide-slate-800 print:divide-slate-300">
-                    {groupItems.map((it) => (
-                      <tr key={it.id}>
-                        <td className="py-1 pr-2 text-slate-100 print:text-slate-900">
-                          <div className="truncate max-w-[14rem]">{it.name}</div>
-                          <div className="text-[11px] text-slate-500 print:text-slate-700 font-mono">
-                            {it.sku}{it.brand ? ` · ${it.brand}` : ''}
-                          </div>
-                        </td>
-                        <td className="py-1 pr-2 text-slate-400 print:text-slate-700 text-xs whitespace-nowrap">
-                          {it.location_text ?? ''}
-                        </td>
-                        <td className="py-1 pr-2 text-right tabular-nums">{it.qty}</td>
-                        <td className="py-1"><StatusPill status={it.status} /></td>
-                      </tr>
-                    ))}
+                    {groupItems.map((it) => {
+                      const needsReorder = it.status === 'out' || it.status === 'low';
+                      const suggestedQty = Math.max((it.threshold ?? 0) - (it.qty ?? 0), 1);
+                      return (
+                        <tr key={it.id}>
+                          <td className="py-1 pr-2 text-slate-100 print:text-slate-900">
+                            <div className="truncate max-w-[10rem]">{it.name}</div>
+                            <div className="text-[11px] text-slate-500 print:text-slate-700 font-mono">
+                              {it.sku}{it.brand ? ` · ${it.brand}` : ''}
+                            </div>
+                          </td>
+                          <td className="py-1 pr-2 text-slate-400 print:text-slate-700 text-xs whitespace-nowrap">
+                            {it.location_text ?? ''}
+                          </td>
+                          <td className="py-1 pr-2 text-right tabular-nums">{it.qty}</td>
+                          <td className="py-1 pr-2"><StatusPill status={it.status} /></td>
+                          <td className="py-1 pl-2 no-print">
+                            {needsReorder && (
+                              <OrderButton
+                                item={it}
+                                variant="secondary"
+                                className="text-xs px-2 py-1 min-h-0 min-w-0"
+                              >
+                                Order {suggestedQty}
+                              </OrderButton>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
