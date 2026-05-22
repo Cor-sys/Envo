@@ -131,6 +131,9 @@ export default function Inventory() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
+          <Link to="/labels" className="tap-secondary" title="Print labels for items without a factory barcode">
+            Labels
+          </Link>
           <Link to="/items/new" className="tap-primary">+ Item</Link>
         </div>
 
