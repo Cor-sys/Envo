@@ -1,32 +1,23 @@
 import { useState } from 'react';
-import { signIn, signUp } from '../lib/auth.jsx';
+import { Link } from 'react-router-dom';
+import { signInWithUsername } from '../lib/auth.jsx';
 
+// Sign-in only. There's no sign-up path here on purpose — new accounts can
+// only be created through /invite/:code, which an admin distributes
+// out-of-band. The "Have an invite code?" link below routes new users
+// straight into that flow.
 export default function Login() {
-  const [mode, setMode] = useState('signin');
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
   const [error, setError] = useState(null);
-  const [info, setInfo] = useState(null);
   const [busy, setBusy] = useState(false);
 
   async function submit(e) {
     e.preventDefault();
     setError(null);
-    setInfo(null);
     setBusy(true);
     try {
-      if (mode === 'signin') {
-        await signIn(email, password);
-      } else {
-        const r = await signUp(email, password, name);
-        if (r.session) {
-          // confirmation disabled → signed in immediately
-        } else {
-          setInfo('Account created. Check your email for the confirmation link, then sign in.');
-          setMode('signin');
-        }
-      }
+      await signInWithUsername(identifier, password);
     } catch (e) {
       setError(e.message || String(e));
     } finally {
@@ -38,34 +29,23 @@ export default function Login() {
 
   return (
     <div className="mx-auto max-w-sm p-6 space-y-4">
-      <h1 className="text-2xl font-semibold tracking-tight">
-        <span className="text-sky-400">Stock</span>room
+      <h1 className="wordmark text-2xl">
+        <span className="wordmark-dot" />
+        stockroom
       </h1>
-      <p className="text-slate-400 text-sm">
-        {mode === 'signin' ? 'Sign in to continue.' : 'Create your staff account.'}
-      </p>
+      <p className="text-slate-400 text-sm">Sign in to continue.</p>
 
       <form className="space-y-3" onSubmit={submit}>
-        {mode === 'signup' && (
-          <label className="block">
-            <span className="block text-sm text-slate-300">Name</span>
-            <input
-              className={inputCls}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              autoComplete="name"
-              required
-            />
-          </label>
-        )}
         <label className="block">
-          <span className="block text-sm text-slate-300">Email</span>
+          <span className="block text-sm text-slate-300">Username</span>
           <input
             className={inputCls}
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            autoComplete="email"
+            value={identifier}
+            onChange={(e) => setIdentifier(e.target.value)}
+            autoComplete="username"
+            autoCapitalize="off"
+            autoCorrect="off"
+            spellCheck="false"
             required
           />
         </label>
@@ -76,31 +56,24 @@ export default function Login() {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+            autoComplete="current-password"
             required
-            minLength={6}
           />
         </label>
 
         {error && <p className="text-red-400 text-sm">{error}</p>}
-        {info && <p className="text-emerald-300 text-sm">{info}</p>}
 
         <button className="tap-primary w-full" type="submit" disabled={busy}>
-          {busy ? 'Working…' : mode === 'signin' ? 'Sign in' : 'Create account'}
+          {busy ? 'Signing in…' : 'Sign in'}
         </button>
       </form>
 
-      <button
-        type="button"
-        className="tap-secondary w-full"
-        onClick={() => {
-          setMode(mode === 'signin' ? 'signup' : 'signin');
-          setError(null);
-          setInfo(null);
-        }}
-      >
-        {mode === 'signin' ? 'Need an account? Sign up' : 'Have an account? Sign in'}
-      </button>
+      <div className="border-t border-slate-800 pt-3 text-center">
+        <p className="text-xs text-slate-500 mb-1">First time here?</p>
+        <Link to="/invite" className="text-sm text-orange-400 hover:text-orange-300">
+          I have an invite code →
+        </Link>
+      </div>
     </div>
   );
 }

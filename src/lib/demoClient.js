@@ -311,7 +311,25 @@ export const demoClient = {
   from(table) {
     return makeBuilder(table);
   },
+  // In demo mode invites + auth aren't wired up — anyone can "sign in" with
+  // any credentials and there's no admin role. These stubs keep the new
+  // login form working: typing any non-empty username succeeds.
+  functions: {
+    async invoke(name) {
+      return {
+        data: null,
+        error: new Error(`demo: functions.invoke(${name}) is not supported`),
+      };
+    },
+  },
   async rpc(fn, args) {
+    if (fn === 'get_email_for_username') {
+      const u = String(args?.p_username ?? '').trim();
+      if (!u) return { data: null, error: null };
+      // Pretend any username resolves to the demo session's email so the
+      // subsequent signInWithPassword auto-accepts.
+      return { data: fakeUser.email, error: null };
+    }
     if (fn !== 'record_movement') {
       return { data: null, error: new Error('demo: unknown rpc ' + fn) };
     }

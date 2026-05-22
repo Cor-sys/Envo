@@ -104,6 +104,7 @@ create table if not exists tags (
 create table if not exists staff_profiles (
   id          uuid        primary key references auth.users(id) on delete cascade,
   full_name   text,
+  username    text,                                          -- login handle; nullable for legacy real-email accounts
   role        text        not null default 'staff'
               check (role in ('admin','staff','viewer')),
   is_active   boolean     not null default true,
@@ -111,10 +112,53 @@ create table if not exists staff_profiles (
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
 );
+create unique index if not exists staff_profiles_username_uniq
+  on staff_profiles (lower(username))
+  where username is not null;
 
 drop trigger if exists staff_profiles_set_updated_at on staff_profiles;
 create trigger staff_profiles_set_updated_at before update on staff_profiles
   for each row execute function set_updated_at();
+
+-- ---------------------------------------------------------------------------
+-- invites  (single-use codes minted by admins; redeemed via the
+--          redeem-invite Edge Function which creates the auth.users row
+--          + staff_profile in one go)
+-- ---------------------------------------------------------------------------
+create table if not exists invites (
+  id          uuid        primary key default gen_random_uuid(),
+  code        text        not null unique,
+  created_by  uuid        not null references auth.users(id),
+  used_by     uuid        references auth.users(id),
+  used_at     timestamptz,
+  expires_at  timestamptz,
+  note        text,
+  created_at  timestamptz not null default now()
+);
+create index if not exists invites_created_by_idx on invites (created_by);
+create index if not exists invites_unused_idx on invites (used_at) where used_at is null;
+
+-- ---------------------------------------------------------------------------
+-- Public RPC: resolve username → email for the login form. SECURITY DEFINER
+-- so it can join through auth.users; returns ONLY the email column.
+-- ---------------------------------------------------------------------------
+create or replace function get_email_for_username(p_username text)
+  returns text
+  language plpgsql security definer
+  set search_path = public, auth, pg_temp
+as $$
+declare v_email text;
+begin
+  if p_username is null or length(trim(p_username)) = 0 then return null; end if;
+  select u.email into v_email
+    from staff_profiles p join auth.users u on u.id = p.id
+   where lower(p.username) = lower(trim(p_username))
+   limit 1;
+  return v_email;
+end;
+$$;
+revoke all     on function get_email_for_username(text) from public;
+grant  execute on function get_email_for_username(text) to anon, authenticated;
 
 -- ---------------------------------------------------------------------------
 -- items  (universal core for any inventory thing)
@@ -368,6 +412,20 @@ alter table item_tags      enable row level security;
 alter table item_photos    enable row level security;
 alter table documents      enable row level security;
 alter table staff_profiles enable row level security;
+alter table invites        enable row level security;
+
+-- Invites: admin-only. Regular staff never see the table; the redemption
+-- RPC runs as SECURITY DEFINER for the one row being claimed.
+drop policy if exists invites_admin_select on invites;
+drop policy if exists invites_admin_write  on invites;
+create policy invites_admin_select on invites for select to authenticated using (
+  exists (select 1 from staff_profiles p where p.id = auth.uid() and p.role = 'admin')
+);
+create policy invites_admin_write on invites for all to authenticated using (
+  exists (select 1 from staff_profiles p where p.id = auth.uid() and p.role = 'admin')
+) with check (
+  exists (select 1 from staff_profiles p where p.id = auth.uid() and p.role = 'admin')
+);
 
 drop policy if exists items_select on items;
 drop policy if exists items_insert on items;
