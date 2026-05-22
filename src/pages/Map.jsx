@@ -12,12 +12,13 @@ import { listItems } from '../lib/items.js';
 import { isAdmin, useStaffProfile } from '../lib/auth.jsx';
 import StatusPill from '../components/StatusPill.jsx';
 
-// Map tab — renders the campus illustration with 18 invisible tap zones,
-// one per building. Tap zones sit on top of the map's printed building
-// numbers (the white labels baked into the image) so there's only ever
-// one number per building visible on screen. A faint ring appears
-// briefly when a zone is tapped/focused; otherwise the zones are
-// silent and the map illustration carries the visual weight.
+// Map tab — pragmatic interim shape. The campus illustration is a
+// decorative banner at the top; all interaction happens through the
+// numbered building list below it. The on-image tap-zone approach
+// (earlier iterations) was unreliable because a static PNG without
+// pixel-accurate coordinates can't pin every zone to its building,
+// and admins would chase positions forever. Until we have either an
+// SVG-based map or a drag-to-relocate editor, the list wins.
 //
 // The image is served at /campus-map.png from public/. Actual asset
 // dimensions are 1448×1086 = exact 4:3.
@@ -39,12 +40,12 @@ export default function MapPage() {
   }, []);
 
   return (
-    <div className="p-3 space-y-2">
+    <div className="p-3 space-y-3">
       <div className="flex items-baseline justify-between gap-2">
         <h2 className="text-xl font-semibold text-slate-100">Campus map</h2>
         {buildings && (
-          <span className="text-xs text-slate-500">
-            Tap a building for details
+          <span className="text-xs text-slate-500 tabular-nums">
+            {buildings.length} buildings
           </span>
         )}
       </div>
@@ -52,54 +53,46 @@ export default function MapPage() {
       {error && <p className="text-red-300 text-sm">{error}</p>}
       {!buildings && !error && <p className="text-slate-400 text-sm">Loading…</p>}
 
+      {/* Decorative reference. The illustration's own legend at the bottom
+          numbers every building; staff use that to find what they want,
+          then tap the row in the list below. */}
+      <div
+        className="w-full overflow-hidden rounded-2xl border border-slate-800 bg-slate-900"
+        style={{ aspectRatio: IMG_ASPECT }}
+      >
+        <img
+          src={IMG_SRC}
+          alt="Campus map"
+          className="h-full w-full object-cover select-none"
+          draggable={false}
+        />
+      </div>
+
       {buildings && (
-        // Invisible tap zones layered over the map's printed numbers. Each
-        // is a generous (~10% wide) hit target centered on map_x/map_y so
-        // fingers can land anywhere on the building without missing. A
-        // faint clay ring shows on hover (desktop) or active (touch).
-        // Buildings that have linked items get a small clay dot offset
-        // from center so you can see at a glance which ones already have
-        // stock attached.
-        <div
-          className="relative w-full overflow-hidden rounded-2xl border border-slate-800 bg-slate-900"
-          style={{ aspectRatio: IMG_ASPECT }}
-        >
-          <img
-            src={IMG_SRC}
-            alt="Campus map"
-            className="absolute inset-0 h-full w-full object-cover select-none"
-            draggable={false}
-          />
+        <div className="surface p-1 divide-y divide-slate-800">
           {buildings.map((b) => (
-            b.map_x != null && b.map_y != null && (
-              <button
-                key={b.id}
-                type="button"
-                onClick={() => setOpenId(b.id)}
-                aria-label={`${b.name} — building ${b.number}`}
-                title={b.name}
-                className="absolute -translate-x-1/2 -translate-y-1/2 z-10
-                           h-[9%] w-[9%] min-h-[44px] min-w-[44px] rounded-full
-                           bg-transparent border-2 border-transparent
-                           hover:border-honey-400/70 hover:bg-honey-400/10
-                           focus-visible:border-honey-400 focus-visible:bg-honey-400/15
-                           focus-visible:outline-none
-                           active:bg-honey-400/25 active:border-honey-400
-                           transition-colors"
-                style={{ left: `${b.map_x}%`, top: `${b.map_y}%` }}
-              >
-                {/* Small clay dot in the corner indicates this building has
-                    linked stock data. Purely informational — does not affect
-                    tap area. */}
-                {b.item_count > 0 && (
-                  <span
-                    aria-hidden="true"
-                    className="absolute top-0 right-0 h-2 w-2 rounded-full
-                               bg-honey-400 ring-2 ring-slate-950"
-                  />
-                )}
-              </button>
-            )
+            <button
+              key={b.id}
+              type="button"
+              onClick={() => setOpenId(b.id)}
+              className="w-full flex items-center gap-3 px-2 py-2 text-left
+                         hover:bg-slate-800/40 active:bg-slate-700/40
+                         transition-colors first:rounded-t-xl last:rounded-b-xl"
+            >
+              <span className="inline-flex h-7 w-7 items-center justify-center
+                               rounded-full bg-honey-500 text-[12px] font-semibold
+                               text-white tabular-nums shrink-0">
+                {b.number}
+              </span>
+              <span className="flex-1 min-w-0 truncate text-sm text-slate-100">
+                {b.name}
+              </span>
+              {b.item_count > 0 && (
+                <span className="text-[11px] text-slate-400 tabular-nums shrink-0">
+                  {b.item_count} item{b.item_count === 1 ? '' : 's'}
+                </span>
+              )}
+            </button>
           ))}
         </div>
       )}
