@@ -241,19 +241,26 @@ create index if not exists documents_expires_idx on documents (expires_on) where
 -- transactions  (immutable activity log — source of truth for stock movement)
 -- ---------------------------------------------------------------------------
 create table if not exists transactions (
-  id                uuid        primary key default gen_random_uuid(),
-  item_id           uuid        not null references items(id) on delete restrict,
-  direction         text        not null check (direction in ('in', 'out')),
-  qty               integer     not null check (qty > 0),
-  staff_id          uuid        references auth.users(id),
-  staff_label       text,                                          -- denorm name for display
-  note              text,                                          -- free text: job / customer / reason
-  from_location_id  uuid        references locations(id) on delete set null,
-  to_location_id    uuid        references locations(id) on delete set null,
-  reason            text        check (reason is null or reason in
-                      ('restock','consume','transfer','adjust','correction','damaged','found')),
-  idempotency_key   uuid,                                          -- offline-queue retry de-dup; see record_movement
-  occurred_at       timestamptz not null default now()
+  id                  uuid          primary key default gen_random_uuid(),
+  item_id             uuid          not null references items(id) on delete restrict,
+  direction           text          not null check (direction in ('in', 'out')),
+  qty                 integer       not null check (qty > 0),
+  staff_id            uuid          references auth.users(id),
+  staff_label         text,                                          -- denorm name for display
+  note                text,                                          -- free text: job / customer / reason
+  from_location_id    uuid          references locations(id) on delete set null,
+  to_location_id      uuid          references locations(id) on delete set null,
+  reason              text          check (reason is null or reason in
+                        ('restock','consume','transfer','adjust','correction','damaged','found')),
+  idempotency_key     uuid,                                          -- offline-queue retry de-dup; see record_movement
+  -- Cost snapshots captured client-side at scan time so spend/savings
+  -- reports stay stable when item_prices rows are later edited.
+  -- All three are nullable: historical rows + items without pricing on
+  -- file land NULL and drop out of the rollups rather than break them.
+  unit_cost_snapshot  numeric(10,2),
+  max_price_snapshot  numeric(10,2),
+  vendor_snapshot     text,
+  occurred_at         timestamptz   not null default now()
 );
 
 create index if not exists transactions_item_idx     on transactions (item_id, occurred_at desc);
@@ -261,6 +268,8 @@ create index if not exists transactions_occurred_idx on transactions (occurred_a
 create index if not exists transactions_staff_idx    on transactions (staff_id);
 create unique index if not exists transactions_idempotency_key_uniq
   on transactions (idempotency_key) where idempotency_key is not null;
+create index if not exists transactions_cost_period_idx
+  on transactions (occurred_at desc) where unit_cost_snapshot is not null;
 
 -- Enforce immutability: no UPDATE or DELETE on the activity log.
 create or replace function transactions_immutable() returns trigger
@@ -288,16 +297,25 @@ create trigger transactions_no_delete before delete on transactions
 -- can safely retry. The unique constraint on transactions.idempotency_key
 -- short-circuits a duplicate apply — the second call returns the original
 -- row without touching items.qty.
+--
+-- p_unit_cost_snapshot / p_max_price_snapshot / p_vendor_snapshot (optional):
+-- captured client-side at scan time so spend/savings reports remain stable
+-- when item_prices rows are later edited. Default NULL — call sites that
+-- don't pass them produce transactions that simply drop out of cost
+-- rollups, which is the correct behaviour for items without pricing.
 -- ---------------------------------------------------------------------------
 drop function if exists record_movement(uuid, text, integer, text);
 drop function if exists record_movement(uuid, text, integer, text, uuid);
 
 create or replace function record_movement(
-  p_item_id          uuid,
-  p_direction        text,
-  p_qty              integer,
-  p_note             text default null,
-  p_idempotency_key  uuid default null
+  p_item_id            uuid,
+  p_direction          text,
+  p_qty                integer,
+  p_note               text          default null,
+  p_idempotency_key    uuid          default null,
+  p_unit_cost_snapshot numeric(10,2) default null,
+  p_max_price_snapshot numeric(10,2) default null,
+  p_vendor_snapshot    text          default null
 ) returns transactions
 language plpgsql security definer
 set search_path = public, pg_temp as $$
@@ -326,9 +344,11 @@ begin
   -- without re-applying.
   begin
     insert into transactions
-      (item_id, direction, qty, staff_id, staff_label, note, idempotency_key)
+      (item_id, direction, qty, staff_id, staff_label, note, idempotency_key,
+       unit_cost_snapshot, max_price_snapshot, vendor_snapshot)
     values
-      (p_item_id, p_direction, p_qty, v_user_id, v_staff, p_note, p_idempotency_key)
+      (p_item_id, p_direction, p_qty, v_user_id, v_staff, p_note, p_idempotency_key,
+       p_unit_cost_snapshot, p_max_price_snapshot, p_vendor_snapshot)
     returning * into v_txn;
   exception when unique_violation then
     select * into v_txn
@@ -356,9 +376,59 @@ begin
 end;
 $$;
 
-revoke all     on function record_movement(uuid, text, integer, text, uuid) from public;
-revoke execute on function record_movement(uuid, text, integer, text, uuid) from anon;
-grant  execute on function record_movement(uuid, text, integer, text, uuid) to authenticated;
+revoke all     on function record_movement(uuid, text, integer, text, uuid, numeric, numeric, text) from public;
+revoke execute on function record_movement(uuid, text, integer, text, uuid, numeric, numeric, text) from anon;
+grant  execute on function record_movement(uuid, text, integer, text, uuid, numeric, numeric, text) to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- item_prices — per-item vendor price quotes powering OrderButton + spend
+-- reports. See migration 208 for full notes.
+-- ---------------------------------------------------------------------------
+create table if not exists item_prices (
+  id          uuid          primary key default gen_random_uuid(),
+  item_id     uuid          not null references items(id) on delete cascade,
+  vendor      text          not null,
+  price       numeric(10,2) check (price is null or price >= 0),
+  url         text,
+  currency    text          not null default 'USD',
+  note        text,
+  position    smallint      not null default 0,
+  created_at  timestamptz   not null default now(),
+  updated_at  timestamptz   not null default now()
+);
+
+create unique index if not exists item_prices_item_vendor_uniq
+  on item_prices (item_id, lower(vendor));
+create index if not exists item_prices_item_idx
+  on item_prices (item_id);
+create index if not exists item_prices_item_price_idx
+  on item_prices (item_id, price) where price is not null;
+
+drop trigger if exists item_prices_set_updated_at on item_prices;
+create trigger item_prices_set_updated_at
+  before update on item_prices
+  for each row execute function set_updated_at();
+
+-- Backfill: every item with a legacy metadata.purchase_url gets one
+-- vendor row (hostname → vendor name, NULL price). Guarded so re-runs
+-- of schema.sql on an existing project are no-ops.
+insert into item_prices (item_id, vendor, url, position)
+select
+  i.id,
+  initcap(regexp_replace(
+    split_part(split_part(i.metadata->>'purchase_url', '://', 2), '/', 1),
+    '^www\.', ''
+  )),
+  i.metadata->>'purchase_url',
+  0
+  from items i
+ where i.deleted_at is null
+   and i.metadata ? 'purchase_url'
+   and coalesce(trim(i.metadata->>'purchase_url'), '') <> ''
+   and not exists (
+     select 1 from item_prices p where p.item_id = i.id
+   )
+on conflict do nothing;
 
 -- ---------------------------------------------------------------------------
 -- Convenience views
@@ -376,6 +446,31 @@ create or replace view items_with_status with (security_invoker = true) as
          (i.barcode is null) as needs_label
     from items i
    where i.deleted_at is null;
+
+-- items_with_best_price: items_with_status plus per-item best/max price
+-- and vendor count. UI reads from this view when it needs the OrderButton
+-- target URL or the spend-rollup snapshot inputs. NULLs everywhere when
+-- the item has no quotes on file.
+create or replace view items_with_best_price with (security_invoker = true) as
+  select s.*,
+         ip.best_price,
+         ip.best_vendor,
+         ip.best_url,
+         ip.max_price,
+         ip.quote_count
+    from items_with_status s
+    left join lateral (
+      select
+        min(price) filter (where price is not null and url is not null) as best_price,
+        max(price) filter (where price is not null)                     as max_price,
+        count(*)                                                         as quote_count,
+        (array_agg(vendor order by price asc nulls last)
+           filter (where price is not null and url is not null))[1]      as best_vendor,
+        (array_agg(url    order by price asc nulls last)
+           filter (where price is not null and url is not null))[1]      as best_url
+        from item_prices
+       where item_id = s.id
+    ) ip on true;
 
 -- reorder_list: every non-OK item, with a suggested order qty back to threshold.
 create or replace view reorder_list with (security_invoker = true) as
@@ -413,6 +508,21 @@ alter table item_photos    enable row level security;
 alter table documents      enable row level security;
 alter table staff_profiles enable row level security;
 alter table invites        enable row level security;
+alter table item_prices    enable row level security;
+
+-- item_prices: staff read, admin write. Reads are open so every scan
+-- can pick up the best-price snapshot; writes are admin-only because
+-- pricing drives the spend/savings dashboard and shouldn't be casual
+-- to change.
+drop policy if exists item_prices_staff_select on item_prices;
+create policy item_prices_staff_select on item_prices
+  for select to authenticated using (true);
+
+drop policy if exists item_prices_admin_write on item_prices;
+create policy item_prices_admin_write on item_prices
+  for all to authenticated
+  using      (exists (select 1 from staff_profiles p where p.id = auth.uid() and p.role = 'admin'))
+  with check (exists (select 1 from staff_profiles p where p.id = auth.uid() and p.role = 'admin'));
 
 -- Invites: admin-only. Regular staff never see the table; the redemption
 -- RPC runs as SECURITY DEFINER for the one row being claimed.
