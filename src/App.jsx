@@ -14,6 +14,7 @@ import Labels from './pages/Labels.jsx';
 import Scan from './pages/Scan.jsx';
 import Reports from './pages/Reports.jsx';
 import Sds from './pages/Sds.jsx';
+import MapPage from './pages/Map.jsx';
 import RedeemInvite from './pages/RedeemInvite.jsx';
 import Admin from './pages/Admin.jsx';
 
@@ -49,6 +50,7 @@ const tabs = [
   { to: '/scan',    label: 'Scan' },
   { to: '/sds',     label: 'SDS' },
   { to: '/reports', label: 'Reports' },
+  { to: '/map',     label: 'Map' },
 ];
 const tabOrder = tabs.map((t) => t.to);
 
@@ -84,6 +86,7 @@ function AppShell() {
       <Route path="/labels"      element={<Labels />} />
       <Route path="/sds"         element={<Sds />} />
       <Route path="/reports"     element={<Reports />} />
+      <Route path="/map"         element={<MapPage />} />
       <Route path="/admin"       element={<Admin />} />
     </Routes>
   );
@@ -136,7 +139,7 @@ function AppShell() {
       </main>
 
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-800/80 bg-slate-900/95 backdrop-blur">
-        <ul className="mx-auto grid max-w-app grid-cols-4">
+        <ul className="mx-auto grid max-w-app grid-cols-5">
           {tabs.map((t) => (
             <li key={t.to} className="relative">
               <NavLink

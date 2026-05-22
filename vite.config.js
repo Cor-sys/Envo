@@ -31,6 +31,10 @@ export default defineConfig({
       workbox: {
         // Precache everything Vite emits so the app shell works offline.
         globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
+        // The campus map illustration is ~2.5 MB — above workbox's default
+        // 2 MiB precache cap. Bump to 5 MiB so it's stored offline along
+        // with the rest of the shell.
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         // Don't precache the Supabase API; let it hit the network each time
         // and fail loudly when offline (an explicit offline queue is a
         // separate feature — see BRIEF.md section 8.3).
