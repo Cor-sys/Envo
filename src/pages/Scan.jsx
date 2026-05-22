@@ -6,6 +6,7 @@ import {
   lookupItemByCode,
   recordMovement,
 } from '../lib/items.js';
+import { success as hapticSuccess, error as hapticError, tap as hapticTap } from '../lib/haptics.js';
 import StatusPill from '../components/StatusPill.jsx';
 
 const BARCODE_FORMATS = [
@@ -152,9 +153,11 @@ export default function Scan() {
     if (!item || busy) return;
     setBusy(true);
     setError(null);
+    hapticTap();
     try {
       const result = await recordMovement({ itemId: item.id, direction, qty: 1 });
       const queued = result?.queued === true;
+      hapticSuccess();
       setFlash({ name: item.name, direction, queued });
       if (queued) {
         // Server hasn't seen the change yet — apply the delta locally so the
@@ -175,6 +178,7 @@ export default function Scan() {
       setTimeout(() => setFlash(null), 1500);
     } catch (e) {
       setError(e.message);
+      hapticError();
     } finally {
       setBusy(false);
     }
@@ -198,8 +202,10 @@ export default function Scan() {
         <button
           type="button"
           onClick={() => setDirection('in')}
-          className={`rounded-lg py-2 text-sm font-medium transition-colors ${
-            inDir ? 'bg-sky-500 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+          className={`rounded-lg py-2 text-sm font-medium transition-all ${
+            inDir
+              ? 'bg-gradient-to-b from-orange-500 to-orange-600 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.18)]'
+              : 'text-slate-400 hover:text-slate-200'
           }`}
         >
           Check IN
@@ -247,7 +253,7 @@ export default function Scan() {
         <div className="surface p-4 space-y-3">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <Link to={`/items/${item.id}`} className="font-semibold text-slate-100 truncate hover:text-sky-400 transition-colors">
+              <Link to={`/items/${item.id}`} className="font-semibold text-slate-100 truncate hover:text-orange-400 transition-colors">
                 {item.name}
               </Link>
               <div className="text-xs text-slate-400 truncate">

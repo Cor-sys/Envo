@@ -50,7 +50,10 @@ let items = [
     barcode: null,                                   // needs label
     qty: 3, threshold: 8, location_text: 'A2',       // LOW
     location_id: null, supplier_id: null, image_path: null,
-    metadata: { watts: 12, base: 'G13', lumens: 1700, color_temp_k: 3000 },
+    metadata: {
+      watts: 12, base: 'G13', lumens: 1700, color_temp_k: 3000,
+      purchase_url: 'https://www.grainger.com/category/lighting/light-bulbs/linear-fluorescent-tubes',
+    },
     created_at: '2026-04-12T09:00:00Z', updated_at: '2026-04-12T09:00:00Z',
     deleted_at: null,
   },
@@ -83,7 +86,10 @@ let items = [
     barcode: '050676941005',
     qty: 0, threshold: 2, location_text: 'Cabinet D (vented)', // OUT
     location_id: null, supplier_id: null, image_path: null,
-    metadata: { hazard_class: 'flammable_liquid', size: '32oz' },
+    metadata: {
+      hazard_class: 'flammable_liquid', size: '32oz',
+      purchase_url: 'https://www.homedepot.com/p/Klean-Strip-1-qt-Mineral-Spirits-Paint-Thinner-QKSP94005/100150921',
+    },
     created_at: '2026-02-15T09:00:00Z', updated_at: '2026-05-10T14:30:00Z',
     deleted_at: null,
   },
@@ -159,8 +165,19 @@ function makeBuilder(table) {
   let rows = tableRows(table);
   let limit = null;
   let orderBys = [];   // record but don't fully implement multi-sort
+  let pendingUpdate = null;
 
   const apply = () => {
+    // Apply any pending update against the (now filtered) rows. Mutates the
+    // backing `items` array so subsequent queries see the change.
+    if (pendingUpdate && table === 'items') {
+      const targetIds = new Set(rows.map((r) => r.id));
+      items = items.map((it) =>
+        targetIds.has(it.id) ? { ...it, ...pendingUpdate, updated_at: new Date().toISOString() } : it,
+      );
+      rows = items.filter((i) => !i.deleted_at && targetIds.has(i.id));
+      pendingUpdate = null;
+    }
     let r = rows;
     if (orderBys.length) {
       const [{ col, ascending }] = orderBys; // honor first order only — enough for demo
@@ -182,9 +199,16 @@ function makeBuilder(table) {
     select() { return builder; },
     eq(col, val)   { rows = rows.filter(r => r[col] === val); return builder; },
     is(col, val)   { rows = rows.filter(r => (val === null ? r[col] == null : r[col] === val)); return builder; },
+    in(col, vals)  { const s = new Set(vals); rows = rows.filter(r => s.has(r[col])); return builder; },
     or()           { return builder; },  // search ilike — ignored in demo (returns full set)
     order(col, opts = {}) { orderBys.push({ col, ascending: opts.ascending !== false }); return builder; },
     limit(n)       { limit = n; return builder; },
+    update(values) {
+      // The chained .eq() will narrow `rows` before the terminal call resolves,
+      // so we capture the patch and apply it in apply() once the filter is in.
+      pendingUpdate = values;
+      return builder;
+    },
     insert(values) {
       const arr = Array.isArray(values) ? values : [values];
       const created = arr.map((v, i) => ({
@@ -213,9 +237,42 @@ function makeBuilder(table) {
   return builder;
 }
 
+// ---------- storage mock ----------
+//
+// In-memory blob URLs keyed by storage path. Each upload replaces the prior
+// URL at that path and revokes the old one so we don't leak. Persists only
+// for the page lifetime — refreshing resets just like the rest of the demo.
+
+const demoPhotoUrls = new Map();
+
+const demoStorage = {
+  from(_bucket) {
+    return {
+      async upload(path, blob) {
+        const oldUrl = demoPhotoUrls.get(path);
+        if (oldUrl) URL.revokeObjectURL(oldUrl);
+        demoPhotoUrls.set(path, URL.createObjectURL(blob));
+        return { data: { path }, error: null };
+      },
+      getPublicUrl(path) {
+        return { data: { publicUrl: demoPhotoUrls.get(path) ?? null } };
+      },
+      async remove(paths) {
+        for (const p of paths) {
+          const u = demoPhotoUrls.get(p);
+          if (u) URL.revokeObjectURL(u);
+          demoPhotoUrls.delete(p);
+        }
+        return { data: paths.map((name) => ({ name })), error: null };
+      },
+    };
+  },
+};
+
 // ---------- exported client ----------
 
 export const demoClient = {
+  storage: demoStorage,
   auth: {
     async getSession() {
       return { data: { session: currentSession }, error: null };

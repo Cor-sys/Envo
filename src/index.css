@@ -3,13 +3,33 @@
 @tailwind utilities;
 
 /* ---------------------------------------------------------------------------
- * Stockroom theme: dark slate canvas, sky-blue accent. Lower glare and higher
- * contrast for stockrooms with varied / dim lighting.
- * Tokens centralized here so component classes stay small.
+ * Stockroom theme — warehouse / industrial polish.
+ *
+ *   Canvas: slate-950 (cool dark, doesn't go full black so contrast feels easy
+ *           in dim back-room lighting).
+ *   Accent: copper / orange-600. Picked to (a) not collide with the status
+ *           pills (emerald / amber / red), (b) read as "warehouse + tools"
+ *           rather than generic SaaS-blue, and (c) stay readable on dark.
+ *   Type:   Inter Variable (loaded by main.jsx). Variable-weight gives us
+ *           600/700/800 in the same file as 400 — zero extra payload.
+ *   Depth:  subtle inset-highlight + soft border. No heavy shadows; this is
+ *           an inventory tool, not a marketing site.
+ *
+ * Status colors are NOT theme-able from here — they're semantic (red=out,
+ * amber=low, emerald=ok) and live in the .pill-* classes below.
  * --------------------------------------------------------------------------- */
 @layer base {
   html, body, #root { height: 100%; }
-  body { @apply bg-slate-950 text-slate-100; }
+  body {
+    @apply bg-slate-950 text-slate-100 antialiased;
+    font-feature-settings: 'cv11', 'ss01', 'ss03'; /* Inter humanist tweaks */
+    /* Subtle ambient warmth in the background — a near-invisible gradient
+       so the canvas doesn't read as a flat plane. */
+    background-image:
+      radial-gradient(at 100% 0%,   rgba(234, 88, 12, 0.06) 0%, transparent 50%),
+      radial-gradient(at 0% 100%,   rgba(56, 189, 248, 0.04) 0%, transparent 45%);
+    background-attachment: fixed;
+  }
 
   /* iOS Safari: keep tap targets responsive, no double-tap zoom shenanigans. */
   button, [role='button'] { touch-action: manipulation; }
@@ -19,28 +39,81 @@
     @apply bg-slate-900 border-slate-700 text-slate-100 placeholder-slate-500;
     color-scheme: dark;
   }
+
+  /* Tabular numerals across the app — qty / threshold / timestamps stay in
+     a clean vertical column. */
+  .tabular-nums { font-variant-numeric: tabular-nums; }
 }
 
 @layer components {
   /* Mobile-first tap target: 44px minimum hit area. */
   .tap {
     @apply min-h-[44px] min-w-[44px] inline-flex items-center justify-center
-           rounded-lg px-3 py-2 font-medium select-none transition-colors;
+           rounded-lg px-3 py-2 font-medium select-none transition-all;
   }
-  .tap-primary   { @apply tap bg-sky-500    text-white active:bg-sky-600; }
-  .tap-secondary { @apply tap bg-slate-800  text-slate-100 border border-slate-700 active:bg-slate-700; }
-  .tap-danger    { @apply tap bg-red-500    text-white active:bg-red-600; }
+  /* Copper accent. The inset highlight gives a millimeter of vertical depth
+     without resorting to a drop shadow that would look toy-like on dark. */
+  .tap-primary {
+    @apply tap text-white
+           bg-gradient-to-b from-orange-500 to-orange-600
+           shadow-[inset_0_1px_0_0_rgba(255,255,255,0.18)]
+           active:from-orange-600 active:to-orange-700;
+  }
+  .tap-secondary {
+    @apply tap bg-slate-800 text-slate-100 border border-slate-700
+           shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]
+           active:bg-slate-700;
+  }
+  .tap-danger {
+    @apply tap text-white
+           bg-gradient-to-b from-red-500 to-red-600
+           shadow-[inset_0_1px_0_0_rgba(255,255,255,0.18)]
+           active:from-red-600 active:to-red-700;
+  }
 
-  /* Card / surface — used for list rows, detail panels, the on-hand card. */
-  .surface       { @apply rounded-2xl border border-slate-800 bg-slate-900; }
+  /* Card / surface — used for list rows, detail panels, the on-hand card.
+     Subtle inset highlight + warmer border than slate-800 to lift it off
+     the canvas a touch. */
+  .surface {
+    @apply rounded-2xl border border-slate-800 bg-slate-900;
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.03),
+      0 1px 2px 0 rgba(0, 0, 0, 0.4);
+  }
+  .surface-interactive {
+    @apply surface transition-colors active:bg-slate-800/70;
+  }
 
-  /* Status pills — designed for dark bg with semi-transparent fills. */
+  /* Status pills — designed for dark bg with semi-transparent fills.
+     Status colors are intentional and stable: red/amber/emerald = OUT/LOW/OK. */
   .pill {
     @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium;
   }
   .pill-ok       { @apply pill bg-emerald-500/15 text-emerald-300; }
   .pill-low      { @apply pill bg-amber-500/15  text-amber-300; }
   .pill-out      { @apply pill bg-red-500/15    text-red-300; }
+
+  /* Bottom-tab pill (active state) — copper underline rather than full fill,
+     keeps the chrome quiet. */
+  .nav-active {
+    @apply text-orange-400;
+  }
+  .nav-active-bar {
+    @apply absolute -top-px left-1/2 -translate-x-1/2 h-0.5 w-8 rounded-full
+           bg-gradient-to-r from-orange-400 to-amber-400;
+  }
+
+  /* Wordmark — a single piece, weight + tracking carry the identity rather
+     than a two-tone gimmick. */
+  .wordmark {
+    @apply text-[1.05rem] font-semibold tracking-tight;
+    letter-spacing: -0.01em;
+  }
+  .wordmark-dot {
+    @apply inline-block w-1.5 h-1.5 rounded-full mr-2 align-middle
+           bg-gradient-to-br from-orange-400 to-amber-500;
+    box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.15);
+  }
 }
 
 /* ---------------------------------------------------------------------------
@@ -77,7 +150,11 @@
 @media print {
   /* Hide tab bar, header, search, etc. — only the label grid prints. */
   .no-print, header, nav { display: none !important; }
-  body { background: white !important; color: black !important; }
+  body {
+    background: white !important;
+    color: black !important;
+    background-image: none !important;
+  }
   .labels-page { padding: 0 !important; }
   .label-card { border: none; }
 

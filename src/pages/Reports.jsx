@@ -7,6 +7,7 @@ import {
 } from '../lib/reports.js';
 import { itemTypeLabel } from '../lib/items.js';
 import StatusPill from '../components/StatusPill.jsx';
+import OrderButton from '../components/OrderButton.jsx';
 
 // Reports screen (BRIEF §10): point-in-time roll-up that staff/owner can
 // print or Save-as-PDF straight from the browser. Print CSS (in index.css)
@@ -116,8 +117,9 @@ export default function Reports() {
                 <th className="py-1 pr-2 font-medium">Type</th>
                 <th className="py-1 pr-2 font-medium text-right">On hand</th>
                 <th className="py-1 pr-2 font-medium text-right">Threshold</th>
-                <th className="py-1 pr-2 font-medium text-right">Order</th>
-                <th className="py-1 font-medium">Status</th>
+                <th className="py-1 pr-2 font-medium text-right">Order qty</th>
+                <th className="py-1 pr-2 font-medium">Status</th>
+                <th className="py-1 font-medium no-print"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800 print:divide-slate-300">
@@ -131,7 +133,16 @@ export default function Reports() {
                   <td className="py-1 pr-2 text-right tabular-nums">{r.qty}</td>
                   <td className="py-1 pr-2 text-right tabular-nums text-slate-400 print:text-slate-700">{r.threshold}</td>
                   <td className="py-1 pr-2 text-right tabular-nums font-medium">{r.suggested_qty}</td>
-                  <td className="py-1"><StatusPill status={r.status} /></td>
+                  <td className="py-1 pr-2"><StatusPill status={r.status} /></td>
+                  <td className="py-1 pl-2 no-print">
+                    <OrderButton
+                      item={r}
+                      variant="secondary"
+                      className="text-xs px-2 py-1 min-h-0 min-w-0"
+                    >
+                      Order
+                    </OrderButton>
+                  </td>
                 </tr>
               ))}
             </tbody>

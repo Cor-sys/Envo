@@ -6,11 +6,18 @@ import {
   recentTransactions,
   recordMovement,
 } from '../lib/items.js';
+import { photoUrl } from '../lib/photos.js';
+import { success as hapticSuccess, error as hapticError, tap as hapticTap } from '../lib/haptics.js';
 import StatusPill from '../components/StatusPill.jsx';
+import OrderButton from '../components/OrderButton.jsx';
 
 function humanizeKey(k) {
   return k.replaceAll('_', ' ');
 }
+
+// purchase_url is a UX field surfaced on its own row, not in the generic
+// "details" dl, so it doesn't show up twice.
+const HIDDEN_META_KEYS = new Set(['purchase_url']);
 
 const QTY_PRESETS = [1, 5, 10, 25];
 
@@ -23,7 +30,7 @@ export default function ItemDetail() {
   const [busy, setBusy] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [adjustQty, setAdjustQty] = useState(1);
-  const [flash, setFlash] = useState(null);   // { direction, qty } for 1.5s after commit
+  const [flash, setFlash] = useState(null);
 
   async function reload() {
     setError(null);
@@ -49,18 +56,17 @@ export default function ItemDetail() {
     const qty = Math.max(1, Math.floor(Number(adjustQty) || 1));
     if (direction === 'out' && item.qty < qty) {
       setError(`Only ${item.qty} on hand — can't pull ${qty}.`);
+      hapticError();
       return;
     }
     setBusy(true);
     setError(null);
+    hapticTap();
     const prev = item;
-    // Optimistic — show the new qty immediately so the tap feels responsive.
     const delta = direction === 'in' ? qty : -qty;
     setItem({
       ...item,
       qty: item.qty + delta,
-      // Update derived fields locally so the status pill flips without
-      // waiting for the round-trip.
       status: item.qty + delta <= 0 ? 'out'
             : item.qty + delta <= item.threshold ? 'low'
             : 'ok',
@@ -68,15 +74,14 @@ export default function ItemDetail() {
     try {
       const result = await recordMovement({ itemId: id, direction, qty });
       const queued = result?.queued === true;
+      hapticSuccess();
       setFlash({ direction, qty, queued });
       setTimeout(() => setFlash(null), 1500);
-      // When queued, the server hasn't seen the change yet — reloading would
-      // overwrite the optimistic qty with the stale server value. Keep the
-      // optimistic state and let the queue drainer reconcile later.
       if (!queued) await reload();
     } catch (e) {
-      setItem(prev);    // revert optimistic update
+      setItem(prev);
       setError(e.message);
+      hapticError();
     } finally {
       setBusy(false);
     }
@@ -94,6 +99,8 @@ export default function ItemDetail() {
 
   const outQty = Math.max(1, Math.floor(Number(adjustQty) || 1));
   const outDisabled = busy || item.qty < outQty;
+  const needsReorder = item.status === 'out' || item.status === 'low';
+  const heroUrl = photoUrl(item.image_path);
 
   return (
     <div className="p-3 space-y-4">
@@ -103,11 +110,19 @@ export default function ItemDetail() {
         </button>
         <Link
           to={`/items/${id}/edit`}
-          className="text-sm text-sky-400 hover:text-sky-300 transition-colors"
+          className="text-sm text-orange-400 hover:text-orange-300 transition-colors"
         >
           Edit
         </Link>
       </div>
+
+      {heroUrl && (
+        <img
+          src={heroUrl}
+          alt={item.name}
+          className="w-full h-48 object-cover rounded-2xl border border-slate-800 bg-slate-900"
+        />
+      )}
 
       <div className="space-y-1">
         <div className="flex items-center justify-between">
@@ -124,6 +139,20 @@ export default function ItemDetail() {
           </div>
         )}
       </div>
+
+      {needsReorder && (
+        <div className="rounded-2xl border border-orange-500/30 bg-orange-500/5 p-3 flex items-center justify-between gap-3">
+          <div className="text-sm">
+            <div className="font-medium text-orange-200">
+              {item.status === 'out' ? 'Out of stock' : 'Low stock'}
+            </div>
+            <div className="text-xs text-orange-200/70">
+              {md.purchase_url ? 'Tap to reorder from supplier.' : 'Tap to search the web.'}
+            </div>
+          </div>
+          <OrderButton item={item} variant="primary" />
+        </div>
+      )}
 
       <div className="surface p-4 space-y-4 relative">
         {flash && (
@@ -156,7 +185,7 @@ export default function ItemDetail() {
                   onClick={() => setAdjustQty(n)}
                   className={`shrink-0 rounded-lg px-2.5 py-1 text-sm tabular-nums transition-colors ${
                     Number(adjustQty) === n
-                      ? 'bg-sky-500 text-white'
+                      ? 'bg-orange-600 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.18)]'
                       : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                   }`}
                 >
@@ -213,12 +242,29 @@ export default function ItemDetail() {
           {item.location_text && (
             <><dt className="text-slate-500">Location</dt><dd>{item.location_text}</dd></>
           )}
-          {Object.entries(md).map(([k, val]) => (
-            <Fragment key={k}>
-              <dt className="text-slate-500 capitalize">{humanizeKey(k)}</dt>
-              <dd>{String(val)}</dd>
-            </Fragment>
-          ))}
+          {md.purchase_url && (
+            <>
+              <dt className="text-slate-500">Reorder</dt>
+              <dd className="truncate">
+                <a
+                  href={md.purchase_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-orange-400 hover:text-orange-300 underline-offset-2 hover:underline truncate inline-block max-w-full align-bottom"
+                >
+                  {md.purchase_url}
+                </a>
+              </dd>
+            </>
+          )}
+          {Object.entries(md)
+            .filter(([k]) => !HIDDEN_META_KEYS.has(k))
+            .map(([k, val]) => (
+              <Fragment key={k}>
+                <dt className="text-slate-500 capitalize">{humanizeKey(k)}</dt>
+                <dd>{String(val)}</dd>
+              </Fragment>
+            ))}
         </dl>
       </section>
 

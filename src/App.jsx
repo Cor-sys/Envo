@@ -1,10 +1,11 @@
 import { useEffect } from 'react';
-import { NavLink, Route, Routes } from 'react-router-dom';
+import { NavLink, Route, Routes, useLocation } from 'react-router-dom';
 import { isConfigured, isDemoMode, supabase } from './lib/supabase.js';
 import { signOut, useSession } from './lib/auth.jsx';
 import { installQueueDrainer } from './lib/offlineQueue.js';
 import AuthGate from './components/AuthGate.jsx';
 import PendingBadge from './components/PendingBadge.jsx';
+import SwipeRoutes from './components/SwipeRoutes.jsx';
 import Inventory from './pages/Inventory.jsx';
 import NewItem from './pages/NewItem.jsx';
 import ItemDetail from './pages/ItemDetail.jsx';
@@ -43,9 +44,11 @@ const tabs = [
   { to: '/labels',  label: 'Labels' },
   { to: '/reports', label: 'Reports' },
 ];
+const tabOrder = tabs.map((t) => t.to);
 
 function AppShell() {
   const { session } = useSession();
+  const location = useLocation();
   const me =
     session?.user?.user_metadata?.full_name || session?.user?.email || '';
 
@@ -55,16 +58,34 @@ function AppShell() {
     installQueueDrainer(supabase);
   }, []);
 
+  // Only attach the swipe gesture on top-level tab routes. Detail pages
+  // ({/items/:id}, /items/new, /items/:id/edit) shouldn't capture horizontal
+  // drag — the user is reading details, not navigating tabs.
+  const isTabRoute = tabOrder.includes(location.pathname);
+
+  const routes = (
+    <Routes>
+      <Route path="/"            element={<Inventory />} />
+      <Route path="/items/new"   element={<NewItem />} />
+      <Route path="/items/:id"        element={<ItemDetail />} />
+      <Route path="/items/:id/edit"   element={<EditItem />} />
+      <Route path="/scan"        element={<Scan />} />
+      <Route path="/labels"      element={<Labels />} />
+      <Route path="/reports"     element={<Reports />} />
+    </Routes>
+  );
+
   return (
-    <div className="flex h-full flex-col bg-slate-950">
+    <div className="flex h-full flex-col">
       {isDemoMode && (
         <div className="bg-amber-500/15 text-amber-200 text-[11px] font-medium text-center py-1 px-3 border-b border-amber-500/30">
           Demo mode — all data is fake and changes don&rsquo;t persist.
         </div>
       )}
-      <header className="border-b border-slate-800 bg-slate-900 px-4 py-3 flex items-center justify-between">
-        <h1 className="text-lg font-semibold tracking-tight">
-          <span className="text-sky-400">Stock</span>room
+      <header className="border-b border-slate-800/80 bg-slate-900/70 backdrop-blur px-4 py-3 flex items-center justify-between">
+        <h1 className="wordmark">
+          <span className="wordmark-dot" />
+          stockroom
         </h1>
         <div className="flex items-center gap-3 text-sm text-slate-400">
           <PendingBadge />
@@ -79,31 +100,30 @@ function AppShell() {
       </header>
 
       <main className="flex-1 overflow-y-auto pb-20">
-        <Routes>
-          <Route path="/"            element={<Inventory />} />
-          <Route path="/items/new"   element={<NewItem />} />
-          <Route path="/items/:id"        element={<ItemDetail />} />
-          <Route path="/items/:id/edit"   element={<EditItem />} />
-          <Route path="/scan"        element={<Scan />} />
-          <Route path="/labels"      element={<Labels />} />
-          <Route path="/reports"     element={<Reports />} />
-        </Routes>
+        {isTabRoute ? (
+          <SwipeRoutes tabOrder={tabOrder}>{routes}</SwipeRoutes>
+        ) : routes}
       </main>
 
-      <nav className="fixed inset-x-0 bottom-0 border-t border-slate-800 bg-slate-900/95 backdrop-blur">
+      <nav className="fixed inset-x-0 bottom-0 border-t border-slate-800/80 bg-slate-900/85 backdrop-blur">
         <ul className="mx-auto grid max-w-screen-sm grid-cols-4">
           {tabs.map((t) => (
-            <li key={t.to}>
+            <li key={t.to} className="relative">
               <NavLink
                 to={t.to}
                 end={t.to === '/'}
                 className={({ isActive }) =>
-                  `tap w-full flex-col text-xs transition-colors ${
-                    isActive ? 'text-sky-400' : 'text-slate-400'
+                  `tap w-full flex-col text-xs transition-colors relative ${
+                    isActive ? 'nav-active' : 'text-slate-400'
                   }`
                 }
               >
-                {t.label}
+                {({ isActive }) => (
+                  <>
+                    {isActive && <span className="nav-active-bar" />}
+                    {t.label}
+                  </>
+                )}
               </NavLink>
             </li>
           ))}

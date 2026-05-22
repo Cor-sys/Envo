@@ -7,6 +7,8 @@ import {
   itemTypeLabel,
   updateItem,
 } from '../lib/items.js';
+import { removeItemPhoto, uploadItemPhoto } from '../lib/photos.js';
+import PhotoInput from '../components/PhotoInput.jsx';
 
 const NULLABLE = ['category', 'brand', 'model', 'barcode', 'location_text'];
 
@@ -17,6 +19,10 @@ export default function EditItem() {
   const [error, setError] = useState(null);
   const [loaded, setLoaded] = useState(false);
   const [v, setV] = useState(null);
+  // Photo state: blob is a fresh upload, removeFlag means "delete existing".
+  const [photoBlob, setPhotoBlob] = useState(null);
+  const [photoRemoveFlag, setPhotoRemoveFlag] = useState(false);
+  const [originalPath, setOriginalPath] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -28,9 +34,9 @@ export default function EditItem() {
           setLoaded(true);
           return;
         }
-        // Pull the metadata out into the form fields where it lives in the
-        // editable UI. Metadata stays flexible (extra keys not in the field
-        // schema are preserved on save).
+        // purchase_url is editable as a top-level field even though it lives
+        // in metadata — split it out for the form, repack on submit.
+        const meta = it.metadata ?? {};
         setV({
           item_type: it.item_type,
           category: it.category ?? '',
@@ -41,8 +47,10 @@ export default function EditItem() {
           qty: it.qty,
           threshold: it.threshold,
           location_text: it.location_text ?? '',
-          metadata: it.metadata ?? {},
+          purchase_url: meta.purchase_url ?? '',
+          metadata: meta,
         });
+        setOriginalPath(it.image_path ?? null);
         setLoaded(true);
       })
       .catch((e) => {
@@ -68,24 +76,40 @@ export default function EditItem() {
     }));
   }
 
+  function onPhotoChange(blob, opts) {
+    setPhotoBlob(blob);
+    setPhotoRemoveFlag(Boolean(opts?.remove));
+  }
+
   async function submit(e) {
     e.preventDefault();
     setBusy(true);
     setError(null);
     try {
-      const payload = { ...v };
+      const payload = {
+        item_type:     v.item_type,
+        category:      v.category,
+        name:          v.name,
+        brand:         v.brand,
+        model:         v.model,
+        barcode:       v.barcode,
+        qty:           v.qty,
+        threshold:     v.threshold,
+        location_text: v.location_text,
+      };
       for (const k of NULLABLE) {
         if (typeof payload[k] === 'string' && payload[k].trim() === '') payload[k] = null;
       }
       payload.qty       = Math.max(0, Number(payload.qty)       || 0);
       payload.threshold = Math.max(0, Number(payload.threshold) || 0);
 
-      // Rebuild metadata from form fields. Preserve any extra keys the user
-      // may have set outside the known field schema.
+      // Rebuild metadata: preserve any extra keys, refresh known fields, then
+      // attach the editable purchase_url.
       const known = new Set(metaFields.map((f) => f.key));
       const cleaned = {};
       for (const [k, val] of Object.entries(v.metadata ?? {})) {
-        if (known.has(k)) continue;            // re-added below from form
+        if (k === 'purchase_url') continue;       // handled below
+        if (known.has(k)) continue;                // re-added from form
         if (val === undefined || val === null || val === '') continue;
         cleaned[k] = val;
       }
@@ -94,7 +118,22 @@ export default function EditItem() {
         if (raw === undefined || raw === null || raw === '') continue;
         cleaned[f.key] = f.type === 'number' ? Number(raw) : raw;
       }
+      if (v.purchase_url && v.purchase_url.trim()) {
+        cleaned.purchase_url = v.purchase_url.trim();
+      }
       payload.metadata = cleaned;
+
+      // Photo handling. Three cases:
+      //   1. New blob picked → upload + set image_path.
+      //   2. Remove flag set → delete from storage + null image_path.
+      //   3. Neither → image_path unchanged (don't put it in the payload).
+      if (photoBlob) {
+        const path = await uploadItemPhoto(id, photoBlob);
+        payload.image_path = path;
+      } else if (photoRemoveFlag && originalPath) {
+        try { await removeItemPhoto(originalPath); } catch { /* best-effort */ }
+        payload.image_path = null;
+      }
 
       await updateItem(id, payload);
       nav(`/items/${id}`, { replace: true });
@@ -139,6 +178,8 @@ export default function EditItem() {
                onChange={(e) => setField('name', e.target.value)} />
       </label>
 
+      <PhotoInput initialPath={originalPath} onChange={onPhotoChange} />
+
       <label className="block">
         <span className="block text-sm text-slate-300">Category</span>
         <input className={inputCls} value={v.category}
@@ -181,6 +222,20 @@ export default function EditItem() {
                  onChange={(e) => setField('location_text', e.target.value)} />
         </label>
       </div>
+
+      <label className="block">
+        <span className="block text-sm text-slate-300">Reorder URL</span>
+        <input
+          className={inputCls}
+          type="url"
+          placeholder="https://… (where you order this from)"
+          value={v.purchase_url}
+          onChange={(e) => setField('purchase_url', e.target.value)}
+        />
+        <span className="block text-xs text-slate-500 mt-1">
+          Powers the "Order" button on item detail. Blank = fall back to a web search.
+        </span>
+      </label>
 
       {metaFields.length > 0 && (
         <fieldset className="space-y-3 surface p-3">
