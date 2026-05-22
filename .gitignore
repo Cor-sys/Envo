@@ -9,3 +9,13 @@ dist/
 
 # Claude Code: per-user / per-machine config, not shared.
 .claude/settings.local.json
+
+# scripts/ — one-off snapshots and intermediate outputs from the SDS-link
+# pipeline. The .mjs files are reusable tooling; the .json files are local
+# state regenerated on each run.
+scripts/db-items.json
+scripts/sds-links-from-file2.json
+scripts/sds-link-matches.json
+scripts/sds-link-verdicts.json
+scripts/sds-link-apply.json
+sds-check.pdf
