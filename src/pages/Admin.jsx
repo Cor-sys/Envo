@@ -56,6 +56,28 @@ export default function Admin() {
     }
   }
 
+  // Delete an invite row. Used invites can be deleted too — that's an
+  // audit-trail cleanup, not a revocation (the account they created still
+  // exists). Open invites being deleted IS a revocation: the code stops
+  // working immediately. Both cases hit the same RLS-gated DELETE.
+  async function remove(inv) {
+    const used = Boolean(inv.used_at);
+    const msg = used
+      ? `Delete this used invite record? The account it created will NOT be affected.`
+      : `Revoke this invite? The code "${inv.code}" will stop working immediately.`;
+    if (!confirm(msg)) return;
+    setError(null);
+    const prev = invites;
+    setInvites((cur) => cur?.filter((i) => i.id !== inv.id) ?? null);
+    try {
+      const { error } = await supabase.from('invites').delete().eq('id', inv.id);
+      if (error) throw error;
+    } catch (e) {
+      setInvites(prev);
+      setError(e.message);
+    }
+  }
+
   function shareLink(code) {
     const url = `${window.location.origin}/invite/${encodeURIComponent(code)}`;
     return url;
@@ -135,16 +157,25 @@ export default function Admin() {
                   Created {new Date(inv.created_at).toLocaleString()}
                   {inv.used_at && <> · Used {new Date(inv.used_at).toLocaleString()}</>}
                 </div>
-                {status === 'open' && (
-                  <div className="flex flex-wrap gap-2 pt-1">
-                    <button type="button" onClick={() => copy(inv.code)} className="tap-secondary text-xs px-2 py-1 min-h-0 min-w-0">
-                      {copied === inv.code ? 'Copied!' : 'Copy code'}
-                    </button>
-                    <button type="button" onClick={() => copy(shareLink(inv.code))} className="tap-secondary text-xs px-2 py-1 min-h-0 min-w-0">
-                      Copy link
-                    </button>
-                  </div>
-                )}
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {status === 'open' && (
+                    <>
+                      <button type="button" onClick={() => copy(inv.code)} className="tap-secondary text-xs px-2 py-1 min-h-0 min-w-0">
+                        {copied === inv.code ? 'Copied!' : 'Copy code'}
+                      </button>
+                      <button type="button" onClick={() => copy(shareLink(inv.code))} className="tap-secondary text-xs px-2 py-1 min-h-0 min-w-0">
+                        Copy link
+                      </button>
+                    </>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => remove(inv)}
+                    className="ml-auto text-xs px-2 py-1 text-red-300 hover:text-red-200 hover:bg-red-500/10 rounded transition-colors"
+                  >
+                    {status === 'open' ? 'Revoke' : 'Delete'}
+                  </button>
+                </div>
               </li>
             );
           })}
