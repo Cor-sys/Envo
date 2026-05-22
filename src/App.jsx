@@ -105,7 +105,7 @@ function AppShell() {
           {admin && (
             <Link
               to="/admin"
-              className="text-orange-400 hover:text-orange-300 transition-colors text-xs uppercase tracking-wide font-medium"
+              className="text-honey-400 hover:text-honey-300 transition-colors text-xs uppercase tracking-wide font-medium"
             >
               Admin
             </Link>

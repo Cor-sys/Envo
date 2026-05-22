@@ -74,7 +74,7 @@ export default function PhotoInput({ initialPath = null, onChange }) {
           type="button"
           onClick={() => fileRef.current?.click()}
           disabled={busy}
-          className="w-full h-40 rounded-xl border-2 border-dashed border-slate-700 bg-slate-900/40 text-slate-400 hover:border-orange-500/50 hover:text-orange-300 transition-colors flex flex-col items-center justify-center gap-1"
+          className="w-full h-40 rounded-xl border-2 border-dashed border-slate-700 bg-slate-900/40 text-slate-400 hover:border-honey-500/50 hover:text-honey-300 transition-colors flex flex-col items-center justify-center gap-1"
         >
           <span className="text-2xl">📷</span>
           <span className="text-sm">{busy ? 'Processing…' : 'Take photo'}</span>

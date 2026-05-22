@@ -90,7 +90,7 @@ export default function Admin() {
     return (
       <div className="p-3 space-y-2">
         <p className="text-red-400">Admin access required.</p>
-        <Link to="/" className="text-orange-400">← Back to inventory</Link>
+        <Link to="/" className="text-honey-400">← Back to inventory</Link>
       </div>
     );
   }
@@ -100,7 +100,7 @@ export default function Admin() {
       <div>
         <h2 className="text-xl font-semibold">Admin</h2>
         <p className="text-xs text-slate-500 mt-1">
-          Signed in as <span className="text-slate-300 font-mono">{profile.username}</span> · role <span className="text-orange-400">admin</span>
+          Signed in as <span className="text-slate-300 font-mono">{profile.username}</span> · role <span className="text-honey-400">admin</span>
         </p>
       </div>
 
