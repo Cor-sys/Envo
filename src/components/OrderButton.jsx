@@ -1,3 +1,5 @@
+import { ExternalLink } from 'lucide-react';
+
 // One-click reorder shortcut.
 //
 //   - If the item has a metadata.purchase_url set, the button opens that URL
@@ -36,7 +38,7 @@ export default function OrderButton({ item, className = '', variant = 'primary',
       title={fallback ? 'No reorder URL set — opens a Google search' : 'Open reorder page in a new tab'}
     >
       {children}
-      {fallback && <span className="ml-1 text-xs opacity-70">↗</span>}
+      <ExternalLink size={14} strokeWidth={2} className={fallback ? 'opacity-70' : ''} />
     </a>
   );
 }

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { ChevronRight, Plus, Printer } from 'lucide-react';
 import { ITEM_TYPES, getMyRecentItemIds, itemTypeLabel, listItems } from '../lib/items.js';
 import { photoUrl } from '../lib/photos.js';
 import StatusPill from '../components/StatusPill.jsx';
@@ -172,10 +173,13 @@ export default function Inventory() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-          <Link to="/labels" className="tap-secondary" title="Print labels for items without a factory barcode">
-            Labels
+          <Link to="/labels" className="tap-secondary" title="Print labels for items without a factory barcode" aria-label="Print labels">
+            <Printer size={16} strokeWidth={1.8} />
           </Link>
-          <Link to="/items/new" className="tap-primary">+ Item</Link>
+          <Link to="/items/new" className="tap-primary">
+            <Plus size={16} strokeWidth={2.5} />
+            Item
+          </Link>
         </div>
 
         {needsAttention > 0 && (
@@ -294,32 +298,32 @@ export default function Inventory() {
                 type="button"
                 onClick={() => toggleGroup(group.type)}
                 aria-expanded={!isCollapsed}
-                className="sticky top-0 z-10 -mx-3 px-3 py-1.5 bg-slate-950/85 backdrop-blur border-b border-slate-800/60 flex items-center justify-between w-[calc(100%+1.5rem)] text-left hover:bg-slate-900/70 transition-colors"
+                className="sticky top-0 z-10 -mx-3 px-3 py-2 bg-slate-950/90 backdrop-blur border-b border-slate-800/70 flex items-center justify-between w-[calc(100%+1.5rem)] text-left hover:bg-slate-900/40 transition-colors"
               >
                 <div className="flex items-center gap-2 min-w-0">
-                  <span
-                    className={`text-slate-500 text-[10px] transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
+                  <ChevronRight
+                    size={14}
+                    strokeWidth={2}
+                    className={`text-slate-400 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
                     aria-hidden="true"
-                  >
-                    ▶
-                  </span>
-                  <h3 className="text-xs uppercase tracking-wider font-semibold text-slate-200 truncate">
-                    {group.label}
-                  </h3>
-                  <span className="text-[11px] text-slate-500 tabular-nums shrink-0">
+                  />
+                  <h3 className="eyebrow truncate">{group.label}</h3>
+                  <span className="text-[11px] text-slate-400 tabular-nums shrink-0">
                     {group.items.length}
                   </span>
                 </div>
                 {(outCount > 0 || lowCount > 0) && (
-                  <div className="flex items-center gap-1.5 shrink-0">
+                  <div className="flex items-center gap-2 shrink-0 text-[10.5px] font-medium uppercase tracking-wider">
                     {outCount > 0 && (
-                      <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-red-500/15 text-red-300 tabular-nums">
-                        {outCount} OUT
+                      <span className="inline-flex items-center gap-1 text-red-700 tabular-nums">
+                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500" />
+                        {outCount} out
                       </span>
                     )}
                     {lowCount > 0 && (
-                      <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 tabular-nums">
-                        {lowCount} LOW
+                      <span className="inline-flex items-center gap-1 text-amber-700 tabular-nums">
+                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500" />
+                        {lowCount} low
                       </span>
                     )}
                   </div>

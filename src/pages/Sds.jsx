@@ -8,6 +8,7 @@ import {
   setSdsUrl,
   clearSds,
 } from '../lib/sds.js';
+import { X } from 'lucide-react';
 import SdsStatusBadge from '../components/SdsStatusBadge.jsx';
 import PullToRefresh from '../components/PullToRefresh.jsx';
 
@@ -255,7 +256,13 @@ function SdsEditor({ item, onClose, onSaved }) {
               {item.brand ?? '—'} · {item.category}
             </div>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-100 text-2xl leading-none px-2">×</button>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="text-slate-400 hover:text-slate-100 p-1.5 -m-1.5 rounded-md hover:bg-slate-800/40"
+          >
+            <X size={18} />
+          </button>
         </div>
 
         <div className="flex items-center gap-2 text-sm">
