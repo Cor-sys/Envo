@@ -8,18 +8,24 @@ import {
   updateItem,
 } from '../lib/items.js';
 import { uploadItemPhoto } from '../lib/photos.js';
+import { savePrices } from '../lib/prices.js';
+import { isAdmin, useStaffProfile } from '../lib/auth.jsx';
 import PhotoInput from '../components/PhotoInput.jsx';
+import PricingEditor from '../components/PricingEditor.jsx';
 import ErrorBanner from '../components/ErrorBanner.jsx';
 
 const NULLABLE = ['category', 'brand', 'model', 'barcode', 'location_text'];
 
 export default function NewItem() {
   const nav = useNavigate();
+  const { profile } = useStaffProfile();
+  const admin = isAdmin(profile);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   // Held in component state until save — we don't have an item id to upload
   // against until the row exists, so the upload is a second step after insert.
   const [photoBlob, setPhotoBlob] = useState(null);
+  const [prices, setPrices] = useState([]);
 
   const [v, setV] = useState({
     item_type: 'light_bulb',
@@ -31,7 +37,6 @@ export default function NewItem() {
     qty: 0,
     threshold: 0,
     location_text: '',
-    purchase_url: '',
     metadata: {},
   });
 
@@ -81,9 +86,6 @@ export default function NewItem() {
         if (raw === undefined || raw === null || raw === '') continue;
         cleaned[f.key] = f.type === 'number' ? Number(raw) : raw;
       }
-      if (v.purchase_url && v.purchase_url.trim()) {
-        cleaned.purchase_url = v.purchase_url.trim();
-      }
       payload.metadata = cleaned;
 
       const created = await createItem(payload);
@@ -99,6 +101,28 @@ export default function NewItem() {
           console.warn('Photo upload failed:', e);
         }
       }
+
+      // Pricing: insert each non-empty vendor row keyed to the new item.
+      // Soft-fail like the photo upload — staff can fix on Edit if any
+      // row rejects.
+      if (admin) {
+        const cleanRows = prices
+          .map(p => ({
+            vendor: (p.vendor ?? '').trim(),
+            price: p.price === '' || p.price == null ? null : Number(p.price),
+            url: (p.url ?? '').trim() || null,
+            note: (p.note ?? '').trim() || null,
+          }))
+          .filter(p => p.vendor);
+        if (cleanRows.length > 0) {
+          try {
+            await savePrices({ itemId: created.id, nextRows: cleanRows, originalRows: [] });
+          } catch (e) {
+            console.warn('Pricing save failed:', e);
+          }
+        }
+      }
+
       nav(`/items/${created.id}`, { replace: true });
     } catch (e) {
       setError(e.message);
@@ -207,19 +231,11 @@ export default function NewItem() {
         </label>
       </div>
 
-      <label className="block">
-        <span className="block text-sm text-slate-300">Reorder URL</span>
-        <input
-          className={inputCls}
-          type="url"
-          placeholder="https://… (where you order this from)"
-          value={v.purchase_url}
-          onChange={(e) => setField('purchase_url', e.target.value)}
-        />
-        <span className="block text-xs text-slate-500 mt-1">
-          Powers the "Order" button on item detail. Optional — leave blank and we'll fall back to a web search.
-        </span>
-      </label>
+      <PricingEditor
+        rows={prices}
+        onChange={setPrices}
+        disabled={!admin}
+      />
 
       {metaFields.length > 0 && (
         <fieldset className="space-y-3 surface p-3">
