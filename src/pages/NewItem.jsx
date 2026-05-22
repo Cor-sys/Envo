@@ -106,7 +106,7 @@ export default function NewItem() {
     }
   }
 
-  const inputCls = 'mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 placeholder-slate-500';
+  const inputCls = 'mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2.5 placeholder-slate-500';
 
   return (
     <form className="space-y-3 p-3" onSubmit={submit}>

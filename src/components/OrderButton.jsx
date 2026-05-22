@@ -25,16 +25,28 @@ export function getOrderUrl(item) {
   return searchUrl(item);
 }
 
+// Variants:
+//   primary    — screen-level CTA, 44px min (e.g. ItemDetail's reorder banner).
+//   secondary  — same height, neutral chrome.
+//   compact    — in-row action (Reports table). 36px min — comfortable but
+//                doesn't dominate dense rows.
+const VARIANT_CLASS = {
+  primary:   'tap-primary',
+  secondary: 'tap-secondary',
+  compact:   'tap-sm-secondary',
+};
+
 export default function OrderButton({ item, className = '', variant = 'primary', children = 'Order' }) {
   const url = getOrderUrl(item);
   if (!url) return null;
   const fallback = !item?.metadata?.purchase_url;
+  const base = VARIANT_CLASS[variant] ?? VARIANT_CLASS.primary;
   return (
     <a
       href={url}
       target="_blank"
       rel="noopener noreferrer"
-      className={`${variant === 'primary' ? 'tap-primary' : 'tap-secondary'} ${className}`}
+      className={`${base} ${className}`}
       title={fallback ? 'No reorder URL set — opens a Google search' : 'Open reorder page in a new tab'}
     >
       {children}

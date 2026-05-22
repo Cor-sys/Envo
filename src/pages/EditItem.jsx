@@ -148,7 +148,7 @@ export default function EditItem() {
   if (loaded && !v && error) return <div className="p-3 text-red-300">{error}</div>;
   if (!v) return <div className="p-3 text-slate-400">Item not found.</div>;
 
-  const inputCls = 'mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 placeholder-slate-500';
+  const inputCls = 'mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2.5 placeholder-slate-500';
 
   return (
     <form className="space-y-3 p-3" onSubmit={submit}>
