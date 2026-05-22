@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Check, ChevronLeft, Pencil } from 'lucide-react';
 import {
   getItem,
   itemTypeLabel,
@@ -105,13 +106,15 @@ export default function ItemDetail() {
   return (
     <div className="p-3 space-y-4">
       <div className="flex items-center justify-between">
-        <button onClick={() => nav(-1)} className="text-sm text-slate-400 hover:text-slate-200 transition-colors">
-          ← Back
+        <button onClick={() => nav(-1)} className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-slate-200 transition-colors">
+          <ChevronLeft size={16} strokeWidth={2} />
+          Back
         </button>
         <Link
           to={`/items/${id}/edit`}
-          className="text-sm text-honey-400 hover:text-honey-300 transition-colors"
+          className="inline-flex items-center gap-1 text-sm text-honey-500 hover:text-honey-600 transition-colors"
         >
+          <Pencil size={14} strokeWidth={2} />
           Edit
         </Link>
       </div>
@@ -156,10 +159,11 @@ export default function ItemDetail() {
 
       <div className="surface p-4 space-y-4 relative">
         {flash && (
-          <div className={`absolute -top-3 inset-x-3 rounded-lg text-white text-xs font-medium px-3 py-1.5 text-center shadow-lg ${
-            flash.queued ? 'bg-amber-500/95' : 'bg-emerald-500/95'
+          <div className={`absolute -top-3 inset-x-3 rounded-lg text-white text-xs font-medium px-3 py-1.5 text-center shadow-md flex items-center justify-center gap-1.5 ${
+            flash.queued ? 'bg-amber-600' : 'bg-emerald-600'
           }`}>
-            ✓ {flash.direction === 'in' ? '+' : '−'}{flash.qty}
+            <Check size={12} strokeWidth={3} />
+            {flash.direction === 'in' ? '+' : '−'}{flash.qty}
             {flash.queued ? ' queued (offline) — will sync' : ' saved'}
           </div>
         )}

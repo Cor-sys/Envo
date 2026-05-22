@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { ArrowDown, Loader2 } from 'lucide-react';
 
 // Custom pull-to-refresh wrapper. iOS Safari (PWA mode) doesn't provide a
 // native one; Android Chrome's native version doesn't fire inside an SPA
@@ -73,16 +74,16 @@ export default function PullToRefresh({ onRefresh, children }) {
         >
           {refreshing ? (
             <>
-              <span className="inline-block h-3 w-3 rounded-full border-2 border-honey-400 border-t-transparent animate-spin" />
+              <Loader2 size={14} className="animate-spin" />
               <span>Refreshing…</span>
             </>
           ) : (
             <>
               <span
-                className="inline-block transition-transform"
+                className="inline-flex transition-transform"
                 style={{ transform: `rotate(${indicatorRotate}deg)` }}
               >
-                ↓
+                <ArrowDown size={14} />
               </span>
               <span>{triggered ? 'Release to refresh' : 'Pull to refresh'}</span>
             </>

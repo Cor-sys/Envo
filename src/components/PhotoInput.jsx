@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Camera, X } from 'lucide-react';
 import { compressPhoto, photoUrl } from '../lib/photos.js';
 
 // Photo capture / preview / clear field for NewItem and EditItem.
@@ -19,7 +20,6 @@ export default function PhotoInput({ initialPath = null, onChange }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
 
-  // Clean up the object URL we create for previews so we don't leak.
   useEffect(() => {
     return () => {
       if (preview && preview.startsWith('blob:')) URL.revokeObjectURL(preview);
@@ -52,7 +52,7 @@ export default function PhotoInput({ initialPath = null, onChange }) {
 
   return (
     <div className="space-y-2">
-      <div className="text-sm text-slate-300">Photo</div>
+      <div className="eyebrow">Photo</div>
 
       {preview ? (
         <div className="relative">
@@ -64,9 +64,10 @@ export default function PhotoInput({ initialPath = null, onChange }) {
           <button
             type="button"
             onClick={clear}
-            className="absolute top-2 right-2 rounded-full bg-slate-900/90 border border-slate-700 px-2 py-1 text-xs text-slate-200 hover:bg-slate-800"
+            aria-label="Remove photo"
+            className="absolute top-2 right-2 rounded-full bg-slate-900/90 border border-slate-700 p-1.5 text-slate-200 hover:bg-slate-800"
           >
-            Remove
+            <X size={14} />
           </button>
         </div>
       ) : (
@@ -74,10 +75,10 @@ export default function PhotoInput({ initialPath = null, onChange }) {
           type="button"
           onClick={() => fileRef.current?.click()}
           disabled={busy}
-          className="w-full h-40 rounded-xl border-2 border-dashed border-slate-700 bg-slate-900/40 text-slate-400 hover:border-honey-500/50 hover:text-honey-300 transition-colors flex flex-col items-center justify-center gap-1"
+          className="w-full h-40 rounded-xl border-2 border-dashed border-slate-700 bg-slate-900/40 text-slate-400 hover:border-honey-500/60 hover:text-honey-500 hover:bg-slate-900/60 transition-colors flex flex-col items-center justify-center gap-2"
         >
-          <span className="text-2xl">📷</span>
-          <span className="text-sm">{busy ? 'Processing…' : 'Take photo'}</span>
+          <Camera size={28} strokeWidth={1.5} />
+          <span className="text-sm font-medium">{busy ? 'Processing…' : 'Take photo'}</span>
           <span className="text-xs text-slate-500">or pick from camera roll</span>
         </button>
       )}
@@ -92,11 +93,11 @@ export default function PhotoInput({ initialPath = null, onChange }) {
       />
 
       {removed && initialPath && (
-        <p className="text-xs text-amber-300">
+        <p className="text-xs text-amber-700">
           Existing photo will be removed when you save.
         </p>
       )}
-      {error && <p className="text-xs text-red-400">{error}</p>}
+      {error && <p className="text-xs text-red-700">{error}</p>}
     </div>
   );
 }

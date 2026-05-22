@@ -3,121 +3,135 @@
 @tailwind utilities;
 
 /* ---------------------------------------------------------------------------
- * Stockroom theme — warm cedar canvas, honey-toned text.
+ * Stockroom theme — pale pine canvas, walnut text, muted brass accent.
  *
- *   Canvas: cedar wood (slate-950 = #7a4730). The "light red wood" the app
- *           wears. Sticky headers + bottom nav also sit on this tone.
- *   Surfaces: INSET into the wood (slate-900 = #6a3c28). Cards look like
- *             recessed panels in a wood board, not floating plaques.
- *   Text:   honey gradient. Primary = #f6dcab, fading through tan to mid
- *           wood for tertiary captions.
- *   Accent: deep honey (honey-500 = #d4a017). Primary buttons, NavLink
- *           active state, brand wordmark dot.
+ *   Canvas: pine cream (slate-950 = #f5ead2). Looks almost like fresh-sawn
+ *           pine board — pale, warm, low-saturation. Easy on the eyes.
+ *   Surface: barely-lifted card (slate-900 = #fbf5e3). Cards sit on the
+ *           pine board with a hairline border, no heavy shadow.
+ *   Text:   walnut (slate-100 = #3d2b1a). Dark enough for long reads in
+ *           bright shop light. Hierarchy fades through tan to lighter.
+ *   Accent: muted brass (honey-500 = #8d6a2e). Primary buttons + brand dot
+ *           only. Status colors (emerald/amber/red) stay semantic.
  *
- * The wood/honey hex values live in tailwind.config.js as overrides on the
- * `slate` palette so existing components auto-theme. Status pill colors
- * (emerald=ok, amber=low, red=out) are NEVER themed — they're semantic.
- *--------------------------------------------------------------------------- */
+ * Theme tokens live in tailwind.config.js; this file owns the components.
+ * --------------------------------------------------------------------------- */
 @layer base {
   html, body, #root { height: 100%; }
   body {
     @apply bg-slate-950 text-slate-100 antialiased;
     font-feature-settings: 'cv11', 'ss01', 'ss03'; /* Inter humanist tweaks */
-    /* Subtle ambient warmth — a near-invisible honey glow in the top-right
-       and a deeper wood shadow in the bottom-left so the canvas doesn't
-       read as a flat plane. */
+    /* Whisper-soft warmth in the corners — under 5% opacity. Pine doesn't
+       need a glow; it's already warm. */
     background-image:
-      radial-gradient(at 100% 0%, rgba(212, 160, 23, 0.10) 0%, transparent 55%),
-      radial-gradient(at 0% 100%, rgba(46, 22, 10,  0.35) 0%, transparent 50%);
+      radial-gradient(at 100% 0%, rgba(141, 106, 46, 0.05) 0%, transparent 60%),
+      radial-gradient(at 0% 100%, rgba(192, 162, 110, 0.06) 0%, transparent 55%);
     background-attachment: fixed;
+    color-scheme: light;
   }
 
-  /* iOS Safari: keep tap targets responsive, no double-tap zoom shenanigans. */
   button, [role='button'] { touch-action: manipulation; }
 
-  /* Form input defaults — Tailwind doesn't reset these. */
+  /* Form inputs — light bg, walnut text, hairline border. */
   input, select, textarea {
-    @apply bg-slate-900 border-slate-700 text-slate-100 placeholder-slate-500;
-    color-scheme: dark;
+    @apply bg-slate-900 border-slate-700 text-slate-100 placeholder-slate-400;
+    color-scheme: light;
+  }
+  input:focus, select:focus, textarea:focus {
+    @apply outline-none ring-2 ring-honey-400/40 border-honey-400;
   }
 
-  /* Tabular numerals across the app — qty / threshold / timestamps stay in
-     a clean vertical column. */
   .tabular-nums { font-variant-numeric: tabular-nums; }
 }
 
 @layer components {
-  /* Mobile-first tap target: 44px minimum hit area. */
+  /* ----- Buttons -------------------------------------------------------- */
   .tap {
-    @apply min-h-[44px] min-w-[44px] inline-flex items-center justify-center
-           rounded-lg px-3 py-2 font-medium select-none transition-all;
+    @apply min-h-[44px] min-w-[44px] inline-flex items-center justify-center gap-1.5
+           rounded-lg px-3.5 py-2 text-sm font-medium select-none transition-all;
   }
-  /* Honey accent button. Dark text on a saturated honey gradient — high
-     contrast and on-theme. Inset highlight + subtle dropshadow give a
-     waxed-finish feel. */
+  /* Primary: solid brass with white text. Matte (no gradient) for a quieter
+     look on the light theme — buttons shouldn't shout. */
   .tap-primary {
-    @apply tap text-slate-900
-           bg-gradient-to-b from-honey-400 to-honey-500
-           shadow-[inset_0_1px_0_0_rgba(255,255,255,0.35),0_1px_2px_0_rgba(46,22,10,0.4)]
-           active:from-honey-500 active:to-honey-600;
+    @apply tap text-white bg-honey-500
+           hover:bg-honey-600
+           active:bg-honey-700
+           focus-visible:ring-2 focus-visible:ring-honey-400/40 focus-visible:outline-none;
   }
+  /* Secondary: pale surface with hairline border + walnut text. */
   .tap-secondary {
-    @apply tap bg-slate-800 text-slate-100 border border-slate-700
-           shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]
-           active:bg-slate-700;
+    @apply tap bg-slate-900 text-slate-100 border border-slate-700
+           hover:bg-slate-800/40
+           active:bg-slate-800/60
+           focus-visible:ring-2 focus-visible:ring-honey-400/40 focus-visible:outline-none;
   }
   .tap-danger {
-    @apply tap text-white
-           bg-gradient-to-b from-red-500 to-red-600
-           shadow-[inset_0_1px_0_0_rgba(255,255,255,0.18)]
-           active:from-red-600 active:to-red-700;
+    @apply tap text-white bg-red-600 hover:bg-red-700 active:bg-red-800
+           focus-visible:ring-2 focus-visible:ring-red-400/40 focus-visible:outline-none;
   }
 
-  /* Card / surface — INSET into the wood. Slightly darker than the canvas,
-     with a soft inner highlight so the lip of the recess catches light. */
+  /* ----- Surfaces ------------------------------------------------------- */
+  /* Cards barely lift off the pine — hairline border + a 1px highlight on
+     top, no heavy shadow. Reads as a flat plaque on a board, not a card. */
   .surface {
-    @apply rounded-2xl border border-slate-800 bg-slate-900;
-    box-shadow:
-      inset 0 1px 0 0 rgba(255, 220, 160, 0.08),
-      inset 0 -1px 0 0 rgba(0, 0, 0, 0.35);
+    @apply rounded-xl border border-slate-800 bg-slate-900;
+    box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.55) inset;
   }
   .surface-interactive {
-    @apply surface transition-colors active:bg-slate-800/70;
+    @apply surface transition-colors hover:bg-slate-800/30 active:bg-slate-800/50;
   }
 
-  /* Status pills — semantic. Designed to stand out against the warm bg
-     without competing with the honey accent. */
+  /* ----- Status indicators (quiet) -------------------------------------- */
+  /* Dot + text — no chip fill. Replaces the prior shouty colored pills. */
+  .status        { @apply inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider; }
+  .status-dot    { @apply inline-block w-1.5 h-1.5 rounded-full; }
+  .status-ok     { @apply text-emerald-700; }
+  .status-ok    .status-dot,
+  .status-ok::before { @apply bg-emerald-500; }
+  .status-low    { @apply text-amber-700; }
+  .status-out    { @apply text-red-700; }
+
+  /* Legacy pill aliases — keep the old .pill-* class names working but
+     render them in the new quiet dot+text style. */
   .pill {
-    @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium;
+    @apply inline-flex items-center gap-1 text-[11px] font-medium uppercase tracking-wider;
   }
-  .pill-ok       { @apply pill bg-emerald-500/15 text-emerald-300; }
-  .pill-low      { @apply pill bg-amber-500/15   text-amber-200; }
-  .pill-out      { @apply pill bg-red-500/15     text-red-300; }
+  .pill::before {
+    content: '';
+    @apply inline-block w-1.5 h-1.5 rounded-full;
+  }
+  .pill-ok         { @apply pill text-emerald-700; }
+  .pill-ok::before { @apply bg-emerald-500; }
+  .pill-low        { @apply pill text-amber-700; }
+  .pill-low::before{ @apply bg-amber-500; }
+  .pill-out        { @apply pill text-red-700; }
+  .pill-out::before{ @apply bg-red-500; }
 
-  /* Bottom-tab active state — honey underline rather than full fill, keeps
-     the chrome quiet on the wood. */
+  /* ----- Navigation chrome --------------------------------------------- */
   .nav-active {
-    @apply text-honey-400;
+    @apply text-honey-500;
   }
   .nav-active-bar {
-    @apply absolute -top-px left-1/2 -translate-x-1/2 h-0.5 w-8 rounded-full
-           bg-gradient-to-r from-honey-400 to-honey-300;
+    @apply absolute -top-px left-1/2 -translate-x-1/2 h-0.5 w-8 rounded-full bg-honey-500;
   }
 
-  /* Wordmark — single piece, weight + tracking carry the identity. */
   .wordmark {
-    @apply text-[1.05rem] font-semibold tracking-tight text-slate-100;
-    letter-spacing: -0.01em;
+    @apply text-base font-semibold tracking-tight text-slate-100;
+    letter-spacing: -0.015em;
   }
   .wordmark-dot {
-    @apply inline-block w-1.5 h-1.5 rounded-full mr-2 align-middle
-           bg-gradient-to-br from-honey-300 to-honey-500;
-    box-shadow: 0 0 0 3px rgba(212, 160, 23, 0.18);
+    @apply inline-block w-1.5 h-1.5 rounded-full mr-2 align-middle bg-honey-500;
+    box-shadow: 0 0 0 3px rgba(141, 106, 46, 0.15);
+  }
+
+  /* ----- Eyebrow labels (uppercase muted) ------------------------------- */
+  .eyebrow {
+    @apply text-[10.5px] font-semibold uppercase tracking-[0.08em] text-slate-400;
   }
 }
 
 /* ---------------------------------------------------------------------------
- * Printable QR label sheet — always white paper, so it ignores the theme.
+ * Print rules unchanged — labels always print on white paper.
  * --------------------------------------------------------------------------- */
 @layer components {
   .label-sheet {

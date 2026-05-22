@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Check } from 'lucide-react';
 import {
   getItem,
   itemTypeLabel,
@@ -232,10 +233,11 @@ export default function Scan() {
         {/* reticle */}
         <div className="pointer-events-none absolute inset-6 rounded-xl border-2 border-white/80 shadow-[0_0_0_9999px_rgba(2,6,23,0.55)]" />
         {flash && (
-          <div className={`absolute inset-x-0 top-0 text-white px-3 py-2 text-sm font-medium text-center ${
-            flash.queued ? 'bg-amber-500/95' : 'bg-emerald-500/95'
+          <div className={`absolute inset-x-0 top-0 text-white px-3 py-2 text-sm font-medium flex items-center justify-center gap-1.5 ${
+            flash.queued ? 'bg-amber-600' : 'bg-emerald-600'
           }`}>
-            ✓ {flash.direction === 'in' ? '+1' : '−1'}: {flash.name}
+            <Check size={14} strokeWidth={3} />
+            {flash.direction === 'in' ? '+1' : '−1'}: {flash.name}
             {flash.queued && ' (queued)'}
           </div>
         )}

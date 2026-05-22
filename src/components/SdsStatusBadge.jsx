@@ -1,20 +1,23 @@
-// SDS readiness badge. Maps the lib/sds.js status values to color + label.
-//
-//   uploaded ✓  we have the PDF on file (best)
-//   linked   🔗 external URL set (good — manufacturer-hosted)
-//   hint     ?  only a web-search hint (needs follow-up)
-//   missing  ⚠  nothing on file (compliance gap)
+import { AlertTriangle, CheckCircle2, HelpCircle, Link2 } from 'lucide-react';
+
+// SDS readiness badge. Quiet variant — small icon + colored text, no chip
+// fill. Maps the lib/sds.js status values to a Lucide icon + label.
+
+const VARIANTS = {
+  uploaded: { Icon: CheckCircle2,  label: 'On file',    color: 'text-emerald-700' },
+  linked:   { Icon: Link2,         label: 'Linked',     color: 'text-honey-500' },
+  hint:     { Icon: HelpCircle,    label: 'Unverified', color: 'text-amber-700' },
+  missing:  { Icon: AlertTriangle, label: 'Missing',    color: 'text-red-700' },
+};
 
 export default function SdsStatusBadge({ status, size = 'sm' }) {
-  const cls = size === 'lg' ? 'text-xs px-2 py-0.5' : 'text-[10px] px-1.5 py-0.5';
-  if (status === 'uploaded') {
-    return <span className={`pill bg-emerald-500/15 text-emerald-300 ${cls}`}>✓ on file</span>;
-  }
-  if (status === 'linked') {
-    return <span className={`pill bg-sky-500/15 text-sky-300 ${cls}`}>🔗 linked</span>;
-  }
-  if (status === 'hint') {
-    return <span className={`pill bg-amber-500/15 text-amber-300 ${cls}`}>? unverified</span>;
-  }
-  return <span className={`pill bg-red-500/15 text-red-300 ${cls}`}>⚠ missing</span>;
+  const v = VARIANTS[status] ?? VARIANTS.missing;
+  const px = size === 'lg' ? 14 : 12;
+  const cls = size === 'lg' ? 'text-xs' : 'text-[11px]';
+  return (
+    <span className={`inline-flex items-center gap-1 font-medium uppercase tracking-wider ${cls} ${v.color}`}>
+      <v.Icon size={px} strokeWidth={2.2} />
+      {v.label}
+    </span>
+  );
 }
