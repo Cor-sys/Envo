@@ -142,7 +142,7 @@ export default function Reports() {
                     </div>
                   </div>
                   <OrderButton item={r} variant="primary" className="w-full">
-                    Order
+                    Order {r.suggested_qty}
                   </OrderButton>
                 </li>
               ))}
