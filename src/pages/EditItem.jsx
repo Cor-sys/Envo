@@ -9,6 +9,7 @@ import {
 } from '../lib/items.js';
 import { removeItemPhoto, uploadItemPhoto } from '../lib/photos.js';
 import PhotoInput from '../components/PhotoInput.jsx';
+import ErrorBanner from '../components/ErrorBanner.jsx';
 
 const NULLABLE = ['category', 'brand', 'model', 'barcode', 'location_text'];
 
@@ -263,7 +264,7 @@ export default function EditItem() {
         on the item page or the Scan tab — those go through the activity log.
       </p>
 
-      {error && <p className="text-red-300 text-sm">{error}</p>}
+      <ErrorBanner message={error} onDismiss={() => setError(null)} />
 
       <div className="flex gap-2 pt-2">
         <button type="button" onClick={() => nav(-1)} className="tap-secondary flex-1">

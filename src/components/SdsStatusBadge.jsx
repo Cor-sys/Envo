@@ -5,7 +5,7 @@ import { AlertTriangle, CheckCircle2, HelpCircle, Link2 } from 'lucide-react';
 
 const VARIANTS = {
   uploaded: { Icon: CheckCircle2,  label: 'On file',    color: 'text-emerald-400' },
-  linked:   { Icon: Link2,         label: 'Linked',     color: 'text-honey-500' },
+  linked:   { Icon: Link2,         label: 'Linked',     color: 'text-sage-400' },
   hint:     { Icon: HelpCircle,    label: 'Unverified', color: 'text-amber-300' },
   missing:  { Icon: AlertTriangle, label: 'Missing',    color: 'text-red-300' },
 };

@@ -5,6 +5,9 @@ import { ITEM_TYPES, itemTypeLabel, listItems } from '../lib/items.js';
 import { photoUrl } from '../lib/photos.js';
 import StatusPill from '../components/StatusPill.jsx';
 import PullToRefresh from '../components/PullToRefresh.jsx';
+import EmptyState from '../components/EmptyState.jsx';
+import ErrorBanner from '../components/ErrorBanner.jsx';
+import { SkeletonList } from '../components/Skeleton.jsx';
 
 function Thumb({ item, size = 'sm' }) {
   const url = photoUrl(item.image_path);
@@ -229,24 +232,22 @@ export default function Inventory() {
           ))}
         </div>
 
-        {error && <p className="text-red-300 text-sm">{error}</p>}
+        <ErrorBanner message={error} onDismiss={() => setError(null)} />
 
-        {items === null && !error && (
-          <p className="text-slate-400">Loading…</p>
-        )}
+        {items === null && !error && <SkeletonList rows={6} />}
 
         {items && items.length === 0 && (
-          <div className="rounded-2xl border border-dashed border-slate-700 p-6 text-center text-slate-400">
-            <p className="font-medium text-slate-200">No items yet.</p>
-            <p className="text-sm mt-1">Tap "+ Item" to add your first.</p>
-          </div>
+          <EmptyState
+            title="No items yet."
+            description={'Tap "+ Item" to add your first.'}
+          />
         )}
 
         {items && items.length > 0 && visible.length === 0 && (
-          <div className="rounded-2xl border border-dashed border-slate-700 p-6 text-center text-slate-400">
-            <p className="font-medium text-slate-200">Nothing needs attention.</p>
-            <p className="text-sm mt-1">Tap the banner above to see all items.</p>
-          </div>
+          <EmptyState
+            title="Nothing needs attention."
+            description="Tap the banner above to see all items."
+          />
         )}
 
         {groupedVisible && groupedVisible.length > 1 && (() => {

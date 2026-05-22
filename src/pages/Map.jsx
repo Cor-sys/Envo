@@ -11,6 +11,8 @@ import {
 import { listItems } from '../lib/items.js';
 import { isAdmin, useStaffProfile } from '../lib/auth.jsx';
 import StatusPill from '../components/StatusPill.jsx';
+import EmptyState from '../components/EmptyState.jsx';
+import ErrorBanner from '../components/ErrorBanner.jsx';
 
 // Map tab — pragmatic interim shape. The campus illustration is a
 // decorative banner at the top; all interaction happens through the
@@ -72,7 +74,7 @@ export default function MapPage() {
         )}
       </div>
 
-      {error && <p className="text-red-300 text-sm">{error}</p>}
+      <ErrorBanner message={error} onDismiss={() => setError(null)} />
       {!buildings && !error && <p className="text-slate-400 text-sm">Loading…</p>}
 
       {/* Decorative reference. The illustration's own legend at the bottom
@@ -102,7 +104,7 @@ export default function MapPage() {
                          transition-colors first:rounded-t-xl last:rounded-b-xl"
             >
               <span className="inline-flex h-7 w-7 items-center justify-center
-                               rounded-full bg-honey-500 text-[12px] font-semibold
+                               rounded-full bg-sage-500 text-[12px] font-semibold
                                text-white tabular-nums shrink-0">
                 {b.number}
               </span>
@@ -180,7 +182,7 @@ function BuildingSheet({ id, onClose }) {
                 title={editing ? 'Done editing' : 'Edit'}
                 className={`p-1.5 rounded-md transition-colors ${
                   editing
-                    ? 'text-honey-300 bg-honey-500/15 hover:bg-honey-500/25'
+                    ? 'text-sage-200 bg-sage-500/20 hover:bg-sage-500/30'
                     : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/40'
                 }`}
               >
@@ -197,7 +199,7 @@ function BuildingSheet({ id, onClose }) {
           </div>
         </div>
 
-        {error && <p className="text-red-300 text-sm">{error}</p>}
+        <ErrorBanner message={error} onDismiss={() => setError(null)} />
 
         {b && (
           <>
@@ -212,9 +214,10 @@ function BuildingSheet({ id, onClose }) {
                 <div className="eyebrow">Stocked items ({b.items.length})</div>
               </div>
               {b.items.length === 0 && !editing && (
-                <p className="text-sm text-slate-500 italic">
-                  No items linked to this building yet.
-                </p>
+                <EmptyState
+                  variant="inline"
+                  title="No items linked to this building yet."
+                />
               )}
               {b.items.length > 0 && (
                 <ul className="surface-interactive divide-y divide-slate-800">

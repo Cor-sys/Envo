@@ -3,24 +3,46 @@
 @tailwind utilities;
 
 /* ---------------------------------------------------------------------------
- * Stockroom theme — midnight slate canvas, cool gray-blue text, clay accent,
- * sage for green-space references on the upcoming Map tab.
- *
- * Tuned to match the campus map illustration: slate buildings, sage
- * green-spaces, sandy/clay walkways.
+ * Stockroom theme — midnight slate canvas, cool gray-blue text. Two
+ * accents with disciplined semantics so the eye can route on color alone.
  *
  *   Canvas: slate (slate-950 = #2c3e50). Classic dashboard dark — same
  *           value as the map's building tiles.
  *   Surface: LIFTED card (slate-900 = #34495e). Reads as plaques on the slate.
  *   Text:   cool gray-blue (slate-100 = #d0d9df). Light without glare.
- *   Accent: warm clay/terracotta (honey-500 = #c87f3d). Was brass; pushed
- *           slightly more orange to feel like sandy walkways on the map.
- *           Keyword name stays `honey` so existing classes still work.
- *   Sage:   new palette (sage-500 = #5d7250). Matches the map's grass
- *           tiles — not yet used in pills; reserved for Map tab + future.
  *
- * Status pills (emerald/amber/red) stay semantic. Light variants since
- * we're on a dark cool canvas.
+ *   Honey (clay/terracotta, honey-500 = #c87f3d) — **action accent.**
+ *           Reserved for "tap me to DO something": primary CTAs,
+ *           reorder banner, focus rings on inputs, the Edit link, the
+ *           "+ in" qty action. If you'd describe the UI element as "an
+ *           action", use honey.
+ *
+ *   Sage   (sage-500 = #5d7250)              — **state accent.**
+ *           Reserved for "this is the current/active/linked state":
+ *           active bottom-nav tab, active filter chip, role markers
+ *           (admin pill), building number badges, SDS "linked" icon,
+ *           selection indicators (label checkboxes, scan direction).
+ *           Also neutral navigation links (Back arrow, SKU link inside
+ *           a sheet) since those are navigation, not action.
+ *
+ *   Statuses (emerald/amber/red) stay semantic and untouched — they
+ *           communicate inventory health, not action vs state.
+ *
+ * ---- Type scale -----------------------------------------------------------
+ *   Stay disciplined to these rungs; introduce a new one only with a reason:
+ *
+ *     text-2xl  / .wordmark-xl    — landing wordmark on auth screens only
+ *     text-xl   font-semibold     — page title (e.g. "Inventory", "Reports")
+ *     text-lg   font-semibold     — modal / sheet title
+ *     text-sm   font-medium       — section heading (h3 above a card cluster)
+ *     text-sm                     — body copy, table cell, form value
+ *     text-xs                     — secondary metadata (sku, brand, date)
+ *     text-[11px] uppercase       — pill / badge label (use .pill family)
+ *     text-[10.5px] uppercase     — eyebrow (use .eyebrow class)
+ *
+ *   Tabular numbers: add `tabular-nums` on any column where digits align.
+ *   Large display numbers (qty on item detail) live outside the scale —
+ *   document them inline where they appear.
  * --------------------------------------------------------------------------- */
 @layer base {
   /* Body-scroll architecture (NOT a nested scroll container).
@@ -137,11 +159,13 @@
   .pill-muted::before{ @apply bg-slate-500; }
 
   /* ----- Navigation chrome --------------------------------------------- */
+  /* Active tab uses sage (state accent), not honey — honey is reserved
+     for actions, and an active tab is a state, not a button to tap. */
   .nav-active {
-    @apply text-honey-400;
+    @apply text-sage-300;
   }
   .nav-active-bar {
-    @apply absolute -top-px left-1/2 -translate-x-1/2 h-0.5 w-8 rounded-full bg-honey-400;
+    @apply absolute -top-px left-1/2 -translate-x-1/2 h-0.5 w-8 rounded-full bg-sage-400;
   }
 
   .wordmark {
@@ -169,8 +193,9 @@
   .chip-inactive {
     @apply chip bg-slate-800 text-slate-300 hover:bg-slate-700;
   }
+  /* Selected chip = state, not action — use sage. */
   .chip-active {
-    @apply chip bg-honey-600 text-white
+    @apply chip bg-sage-600 text-white
            shadow-[inset_0_1px_0_0_rgba(255,255,255,0.15)];
   }
   /* Horizontal-scrolling row of chips that extends to the screen edge

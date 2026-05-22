@@ -11,6 +11,8 @@ import {
 import { AlertTriangle, CheckCircle2, X } from 'lucide-react';
 import SdsStatusBadge from '../components/SdsStatusBadge.jsx';
 import PullToRefresh from '../components/PullToRefresh.jsx';
+import EmptyState from '../components/EmptyState.jsx';
+import ErrorBanner from '../components/ErrorBanner.jsx';
 
 // Filter chips were dropped once every chemical/paint item had a verified
 // SDS PDF on file — the SDS resolution pass covered the inventory 100%, so
@@ -132,14 +134,14 @@ export default function Sds() {
           onChange={(e) => setSearch(e.target.value)}
         />
 
-        {error && <p className="text-red-300 text-sm">{error}</p>}
+        <ErrorBanner message={error} onDismiss={() => setError(null)} />
         {!decorated && !error && <p className="text-slate-400">Loading…</p>}
 
         {grouped && grouped.length === 0 && (
-          <div className="rounded-2xl border border-dashed border-slate-700 p-6 text-center text-slate-400">
-            <p className="font-medium text-slate-200">Nothing matches.</p>
-            <p className="text-sm mt-1">Clear the search to see every item.</p>
-          </div>
+          <EmptyState
+            title="Nothing matches."
+            description="Clear the search to see every item."
+          />
         )}
 
         {grouped && grouped.map((group) => (
@@ -290,10 +292,10 @@ function SdsEditor({ item, onClose, onSaved }) {
         </label>
 
         <div className="border-t border-slate-800 pt-3 text-xs text-slate-400">
-          See full item page: <Link to={`/items/${item.id}`} className="text-honey-400 hover:text-honey-300 transition-colors">{item.sku}</Link>
+          See full item page: <Link to={`/items/${item.id}`} className="text-sage-300 hover:text-sage-200 transition-colors">{item.sku}</Link>
         </div>
 
-        {error && <p className="text-red-300 text-sm">{error}</p>}
+        <ErrorBanner message={error} onDismiss={() => setError(null)} />
       </div>
     </div>
   );
