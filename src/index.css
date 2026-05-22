@@ -3,15 +3,21 @@
 @tailwind utilities;
 
 /* ---------------------------------------------------------------------------
- * Stockroom theme — midnight slate canvas, cool gray-blue text, brass accent.
+ * Stockroom theme — midnight slate canvas, cool gray-blue text, clay accent,
+ * sage for green-space references on the upcoming Map tab.
  *
- *   Canvas: slate (slate-950 = #2c3e50). A classic dashboard dark, cool
- *           but not black — easy on the eyes in any lighting.
- *   Surface: LIFTED card (slate-900 = #34495e). Slightly lighter than the
- *           body so cards read as plaques on the slate.
+ * Tuned to match the campus map illustration: slate buildings, sage
+ * green-spaces, sandy/clay walkways.
+ *
+ *   Canvas: slate (slate-950 = #2c3e50). Classic dashboard dark — same
+ *           value as the map's building tiles.
+ *   Surface: LIFTED card (slate-900 = #34495e). Reads as plaques on the slate.
  *   Text:   cool gray-blue (slate-100 = #d0d9df). Light without glare.
- *   Accent: warm brass (honey-500 = #b88532). The warm/cool contrast is
- *           the design move — like brass fittings on a slate console.
+ *   Accent: warm clay/terracotta (honey-500 = #c87f3d). Was brass; pushed
+ *           slightly more orange to feel like sandy walkways on the map.
+ *           Keyword name stays `honey` so existing classes still work.
+ *   Sage:   new palette (sage-500 = #5d7250). Matches the map's grass
+ *           tiles — not yet used in pills; reserved for Map tab + future.
  *
  * Status pills (emerald/amber/red) stay semantic. Light variants since
  * we're on a dark cool canvas.

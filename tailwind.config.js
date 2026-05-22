@@ -1,11 +1,16 @@
 /** @type {import('tailwindcss').Config} */
 //
-// Theme: midnight slate canvas, cool gray-blue text, warm brass accent.
+// Theme: midnight slate canvas, cool gray-blue text, warm clay accent,
+// sage for positive states. Tuned to match the campus map illustration —
+// slate buildings, sage green-spaces, sandy/clay walkways.
 //
-// User-picked palette: body #2c3e50 + primary text #d0d9df. Cards are
-// LIFTED (slightly lighter than the body) so they read as plaques on
-// the slate. Brass accent stays — warm-on-cool contrast (brass fittings
-// on a slate console).
+// Slate canvas + cool text are user-locked (#2c3e50 / #d0d9df). The clay
+// accent (was 'honey') is pushed slightly more orange so it reads as warm
+// clay rather than yellow brass — keyword name stays `honey` so the
+// hundreds of existing bg-honey-* / text-honey-* references don't need a
+// codemod. The new `sage` palette is the green found in the map's
+// green-space tiles; available for future use but not wired into the
+// existing pill-ok styling (emerald still owns OK/IN/transaction green).
 //
 // Theme tokens override Tailwind's `slate` palette so existing classes
 // (bg-slate-950, text-slate-100, border-slate-800) auto-theme.
@@ -28,14 +33,25 @@ export default {
           900: '#34495e',  // surface (LIFTED — lighter than body)
           950: '#2c3e50',  // body — midnight slate (user pick)
         },
-        // Brand accent — warm brass. Stays warm so it pops on the cool bg.
-        // Used only for primary buttons + brand mark.
+        // Brand accent — warm clay/terracotta. Reads as orange against the
+        // cool slate canvas. Mapped under the legacy `honey` key so the
+        // existing bg-honey-* / text-honey-* class usage keeps working.
         honey: {
-          300: '#e6c279',
-          400: '#d4a64f',
-          500: '#b88532',  // primary button bg
-          600: '#956a21',
-          700: '#704e15',
+          300: '#eab576',  // was #e6c279 — less yellow, more orange
+          400: '#dc9a48',  // was #d4a64f — warmer clay
+          500: '#c87f3d',  // primary button bg — clay/terracotta
+          600: '#a46428',  // hover/active
+          700: '#7c4a17',  // pressed
+        },
+        // Sage — green-space tone from the map illustration. Not wired into
+        // existing pills (those still use emerald) so this is opt-in for the
+        // upcoming Map tab.
+        sage: {
+          300: '#a3b894',
+          400: '#86a075',
+          500: '#5d7250',  // primary sage — matches map's grass tiles
+          600: '#465a3d',
+          700: '#33422d',
         },
       },
       maxWidth: {
