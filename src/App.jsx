@@ -13,6 +13,7 @@ import EditItem from './pages/EditItem.jsx';
 import Labels from './pages/Labels.jsx';
 import Scan from './pages/Scan.jsx';
 import Reports from './pages/Reports.jsx';
+import Sds from './pages/Sds.jsx';
 
 function SetupNeeded() {
   return (
@@ -38,10 +39,13 @@ function SetupNeeded() {
   );
 }
 
+// Labels was a tab previously but is a once-per-new-item action — it now
+// lives as a button on the Inventory page, freeing the slot for SDS which
+// is checked daily for compliance.
 const tabs = [
   { to: '/',        label: 'Inventory' },
   { to: '/scan',    label: 'Scan' },
-  { to: '/labels',  label: 'Labels' },
+  { to: '/sds',     label: 'SDS' },
   { to: '/reports', label: 'Reports' },
 ];
 const tabOrder = tabs.map((t) => t.to);
@@ -71,6 +75,7 @@ function AppShell() {
       <Route path="/items/:id/edit"   element={<EditItem />} />
       <Route path="/scan"        element={<Scan />} />
       <Route path="/labels"      element={<Labels />} />
+      <Route path="/sds"         element={<Sds />} />
       <Route path="/reports"     element={<Reports />} />
     </Routes>
   );

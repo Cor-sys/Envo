@@ -1,0 +1,101 @@
+import { supabase } from './supabase.js';
+
+// Safety Data Sheet (SDS) helpers.
+//
+// SDS state lives entirely on items.metadata so this is a zero-migration
+// feature (the items.metadata jsonb already accepts anything). Keys we touch:
+//
+//   metadata.sds_url           — uploaded PDF (storage path) OR external URL
+//   metadata.sds_path          — set when the PDF was uploaded to our bucket
+//   metadata.sds_search_hint   — fallback text for a web-search button
+//   metadata.sds_updated_at    — ISO timestamp of last SDS change
+//   metadata.cas               — primary CAS number
+//   metadata.epa_reg_no        — real EPA registration number
+//   metadata.epa_status        — placeholder text when no real number exists
+//   metadata.dominant_ingredient
+//
+// Bucket for uploads: chemical-sds (public read, authenticated write —
+// see db/migrations/205_chemical_sds_bucket.sql).
+
+const BUCKET = 'chemical-sds';
+
+// SDS readiness for one item. Used to color the row and feed filters.
+//   'uploaded'  — we have a PDF in storage (metadata.sds_path is set)
+//   'linked'    — an external URL is set but no uploaded PDF
+//   'hint'      — only a search-hint string (no real link yet)
+//   'missing'   — nothing on file
+export function sdsStatus(item) {
+  const md = item?.metadata ?? {};
+  if (md.sds_path) return 'uploaded';
+  if (md.sds_url) return 'linked';
+  if (md.sds_search_hint) return 'hint';
+  return 'missing';
+}
+
+export function sdsViewUrl(item) {
+  const md = item?.metadata ?? {};
+  if (md.sds_path) {
+    const { data } = supabase.storage.from(BUCKET).getPublicUrl(md.sds_path);
+    return data?.publicUrl ?? null;
+  }
+  if (md.sds_url) return md.sds_url;
+  if (md.sds_search_hint) {
+    return `https://www.google.com/search?q=${encodeURIComponent(md.sds_search_hint + ' filetype:pdf')}`;
+  }
+  return null;
+}
+
+// Pull every item subject to SDS tracking — chemicals + paints, soft-deletes
+// excluded. We use items_with_status so the row also carries the OUT/LOW/OK
+// label for use in the SDS row UI.
+export async function listSdsItems() {
+  const { data, error } = await supabase
+    .from('items_with_status')
+    .select('id, sku, item_type, category, name, brand, qty, status, image_path, metadata')
+    .in('item_type', ['chemical', 'paint']);
+  if (error) throw error;
+  return (data ?? []).sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''));
+}
+
+// Upload an SDS PDF to the chemical-sds bucket and patch the item's metadata
+// so the SDS tab + ItemDetail pick it up. Replaces any prior uploaded PDF.
+export async function uploadSdsPdf(itemId, file, existingMetadata = {}) {
+  const path = `${itemId}/sds.pdf`;
+  const { error: upErr } = await supabase.storage
+    .from(BUCKET)
+    .upload(path, file, {
+      contentType: file.type || 'application/pdf',
+      upsert: true,
+      cacheControl: '3600',
+    });
+  if (upErr) throw upErr;
+
+  const next = { ...existingMetadata, sds_path: path, sds_updated_at: new Date().toISOString() };
+  delete next.sds_url; // uploaded file takes precedence over a stale URL
+  await patchItemMetadata(itemId, next);
+  return path;
+}
+
+// Save an external SDS URL on the item (no upload). Useful when the
+// manufacturer hosts the latest revision online.
+export async function setSdsUrl(itemId, url, existingMetadata = {}) {
+  const next = { ...existingMetadata, sds_url: url.trim(), sds_updated_at: new Date().toISOString() };
+  delete next.sds_path; // external link supersedes any prior uploaded PDF
+  await patchItemMetadata(itemId, next);
+}
+
+export async function clearSds(itemId, existingMetadata = {}) {
+  const next = { ...existingMetadata };
+  delete next.sds_path;
+  delete next.sds_url;
+  next.sds_updated_at = new Date().toISOString();
+  await patchItemMetadata(itemId, next);
+}
+
+async function patchItemMetadata(id, metadata) {
+  const { error } = await supabase
+    .from('items')
+    .update({ metadata })
+    .eq('id', id);
+  if (error) throw error;
+}
