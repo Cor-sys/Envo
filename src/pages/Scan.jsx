@@ -157,7 +157,12 @@ export default function Scan() {
     setError(null);
     hapticTap();
     try {
-      const result = await recordMovement({ itemId: item.id, direction, qty: 1 });
+      const result = await recordMovement({
+        itemId: item.id, direction, qty: 1,
+        unitCostSnapshot: item.best_price ?? null,
+        maxPriceSnapshot: item.max_price ?? null,
+        vendorSnapshot:   item.best_vendor ?? null,
+      });
       const queued = result?.queued === true;
       hapticSuccess();
       setFlash({ name: item.name, direction, queued });

@@ -170,7 +170,12 @@ export default function ItemDetail() {
             : 'ok',
     });
     try {
-      const result = await recordMovement({ itemId: id, direction, qty });
+      const result = await recordMovement({
+        itemId: id, direction, qty,
+        unitCostSnapshot: item.best_price ?? null,
+        maxPriceSnapshot: item.max_price ?? null,
+        vendorSnapshot:   item.best_vendor ?? null,
+      });
       const queued = result?.queued === true;
       hapticSuccess();
       setFlash({ direction, qty, queued });
