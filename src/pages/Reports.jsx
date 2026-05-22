@@ -190,11 +190,7 @@ export default function Reports() {
                           <td className="py-1 pr-2"><StatusPill status={it.status} /></td>
                           <td className="py-1 pl-2 no-print">
                             {needsReorder && (
-                              <OrderButton
-                                item={it}
-                                variant="secondary"
-                                className="text-xs px-2 py-1 min-h-0 min-w-0"
-                              >
+                              <OrderButton item={it} variant="compact">
                                 Order {suggestedQty}
                               </OrderButton>
                             )}

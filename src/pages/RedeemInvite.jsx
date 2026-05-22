@@ -43,7 +43,7 @@ export default function RedeemInvite() {
     }
   }
 
-  const inputCls = 'mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 placeholder-slate-500';
+  const inputCls = 'mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2.5 placeholder-slate-500';
 
   return (
     <div className="mx-auto max-w-sm p-6 space-y-4">

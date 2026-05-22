@@ -1,11 +1,10 @@
 import { useEffect } from 'react';
-import { Link, NavLink, Route, Routes, useLocation } from 'react-router-dom';
+import { Link, NavLink, Route, Routes } from 'react-router-dom';
 import { isConfigured, isDemoMode, supabase } from './lib/supabase.js';
 import { isAdmin, signOut, useStaffProfile } from './lib/auth.jsx';
 import { installQueueDrainer } from './lib/offlineQueue.js';
 import AuthGate from './components/AuthGate.jsx';
 import PendingBadge from './components/PendingBadge.jsx';
-import SwipeRoutes from './components/SwipeRoutes.jsx';
 import Inventory from './pages/Inventory.jsx';
 import NewItem from './pages/NewItem.jsx';
 import ItemDetail from './pages/ItemDetail.jsx';
@@ -52,11 +51,9 @@ const tabs = [
   { to: '/reports', label: 'Reports' },
   { to: '/map',     label: 'Map' },
 ];
-const tabOrder = tabs.map((t) => t.to);
 
 function AppShell() {
   const { profile } = useStaffProfile();
-  const location = useLocation();
   const admin = isAdmin(profile);
 
   // Install the offline-queue drainer once we have a live supabase client.
@@ -65,33 +62,11 @@ function AppShell() {
     installQueueDrainer(supabase);
   }, []);
 
-  // Only attach the swipe gesture on top-level tab routes. Detail pages
-  // ({/items/:id}, /items/new, /items/:id/edit, /admin) shouldn't capture
-  // horizontal drag — the user is reading details, not navigating tabs.
-  const isTabRoute = tabOrder.includes(location.pathname);
-
-  const routes = (
-    <Routes>
-      <Route path="/"            element={<Inventory />} />
-      <Route path="/items/new"   element={<NewItem />} />
-      <Route path="/items/:id"        element={<ItemDetail />} />
-      <Route path="/items/:id/edit"   element={<EditItem />} />
-      <Route path="/scan"        element={<Scan />} />
-      <Route path="/labels"      element={<Labels />} />
-      <Route path="/sds"         element={<Sds />} />
-      <Route path="/reports"     element={<Reports />} />
-      <Route path="/map"         element={<MapPage />} />
-      <Route path="/admin"       element={<Admin />} />
-    </Routes>
-  );
-
   // Body-scroll layout. The document itself scrolls — not <main> — so iOS
   // Safari paints a single continuous scrollbar at the viewport edge instead
-  // of one segmented by SwipeRoutes' transform and the rounded card edges.
-  // The header is sticky (was previously in a flex column above the scroll
-  // container, so visibility came for free); the nav stays fixed.
+  // of one segmented by rounded card edges. Header sticky, nav fixed.
   return (
-    <div className="min-h-screen overflow-x-hidden">
+    <div className="min-h-screen">
       {isDemoMode && (
         <div className="bg-amber-500/15 text-amber-200 text-[11px] font-medium text-center py-1 px-3 border-b border-amber-500/30">
           Demo mode — all data is fake and changes don&rsquo;t persist.
@@ -122,9 +97,18 @@ function AppShell() {
 
       <main className="pb-24">
         <div className="mx-auto max-w-app w-full">
-          {isTabRoute ? (
-            <SwipeRoutes tabOrder={tabOrder}>{routes}</SwipeRoutes>
-          ) : routes}
+          <Routes>
+            <Route path="/"            element={<Inventory />} />
+            <Route path="/items/new"   element={<NewItem />} />
+            <Route path="/items/:id"        element={<ItemDetail />} />
+            <Route path="/items/:id/edit"   element={<EditItem />} />
+            <Route path="/scan"        element={<Scan />} />
+            <Route path="/labels"      element={<Labels />} />
+            <Route path="/sds"         element={<Sds />} />
+            <Route path="/reports"     element={<Reports />} />
+            <Route path="/map"         element={<MapPage />} />
+            <Route path="/admin"       element={<Admin />} />
+          </Routes>
         </div>
       </main>
 

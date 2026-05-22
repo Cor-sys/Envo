@@ -160,10 +160,10 @@ export default function Admin() {
                 <div className="flex flex-wrap gap-2 pt-1">
                   {status === 'open' && (
                     <>
-                      <button type="button" onClick={() => copy(inv.code)} className="tap-secondary text-xs px-2 py-1 min-h-0 min-w-0">
+                      <button type="button" onClick={() => copy(inv.code)} className="tap-sm-secondary">
                         {copied === inv.code ? 'Copied!' : 'Copy code'}
                       </button>
-                      <button type="button" onClick={() => copy(shareLink(inv.code))} className="tap-secondary text-xs px-2 py-1 min-h-0 min-w-0">
+                      <button type="button" onClick={() => copy(shareLink(inv.code))} className="tap-sm-secondary">
                         Copy link
                       </button>
                     </>
@@ -171,7 +171,7 @@ export default function Admin() {
                   <button
                     type="button"
                     onClick={() => remove(inv)}
-                    className="ml-auto text-xs px-2 py-1 text-red-300 hover:text-red-200 hover:bg-red-500/10 rounded transition-colors"
+                    className="tap-sm-ghost-danger ml-auto"
                   >
                     {status === 'open' ? 'Revoke' : 'Delete'}
                   </button>
