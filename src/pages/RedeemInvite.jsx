@@ -111,7 +111,7 @@ export default function RedeemInvite() {
           />
         </label>
 
-        {error && <p className="text-red-400 text-sm">{error}</p>}
+        {error && <p className="text-red-700 text-sm">{error}</p>}
 
         <button className="tap-primary w-full" type="submit" disabled={busy}>
           {busy ? 'Creating account…' : 'Create account'}

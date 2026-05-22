@@ -1,19 +1,15 @@
 /** @type {import('tailwindcss').Config} */
 //
-// Theme: pale pine canvas with walnut text and a muted brass accent.
+// Theme: aged kraft-paper canvas with walnut text and espresso-brass accent.
 //
-// The whole app is built around Tailwind's `slate` palette. We override it
-// here with a pine→walnut gradient (light theme — pale at the body, dark
-// at the text end) so every existing `bg-slate-950` / `text-slate-100`
-// auto-themes without touching component files.
+// Overrides Tailwind's `slate` palette with a kraft→walnut gradient. Every
+// existing `bg-slate-950` / `text-slate-100` / `border-slate-800` in the
+// codebase auto-themes through this one file. Surfaces (slate-900) are
+// DARKER than the body (slate-950) on purpose — cards read as recessed
+// panels into the wood, not floating plaques.
 //
-// Mental model: in dark mode, slate-950 was "darkest canvas" and slate-100
-// was "lightest text". In light mode we keep the SAME class meanings but
-// flip the underlying hex values — slate-950 is now the lightest canvas
-// (pine cream) and slate-100 is the darkest text (walnut). The numeric
-// scale is now "from text-y to canvas-y" rather than "dark to light".
-//
-// Status pills (emerald/amber/red) are NOT theme tokens — they're semantic.
+// Status pills (emerald/amber/red) stay semantic. They render as quiet
+// dot+text via the .pill-* CSS in index.css.
 //
 export default {
   content: ['./index.html', './src/**/*.{js,jsx}'],
@@ -21,28 +17,30 @@ export default {
     extend: {
       colors: {
         slate: {
-          50:  '#1f1b14',  // very dark walnut (rare; for max-contrast text on light)
-          100: '#3d2b1a',  // walnut — primary text on the pine canvas
-          200: '#4a3722',  // slightly muted walnut
-          300: '#6e5638',  // muted walnut (subheadings)
-          400: '#9c8156',  // tan (labels, placeholders)
-          500: '#b09870',  // lighter tan (tertiary text, captions)
-          600: '#c9b787',  // hover/highlight bg
-          700: '#d8c692',  // input borders
-          800: '#e6d6a8',  // hairline dividers, surface borders
-          900: '#fbf5e3',  // surface (cards) — barely-lifted from body
-          950: '#f5ead2',  // body canvas — pale pine cream
+          50:  '#0f0a04',  // near-black (rare — for max-contrast text)
+          100: '#241a0c',  // primary text — deep walnut
+          200: '#3a2b17',  // slightly muted walnut
+          300: '#4d3a23',  // muted walnut (subheadings)
+          400: '#6e5535',  // mid kraft (labels, placeholders)
+          500: '#7d6440',  // muted (captions, timestamps)
+          600: '#927a4d',  // hairline dividers / borders
+          700: '#a0875a',  // input borders (slightly stronger than 600)
+          800: '#927a4d',  // surface borders — same as hairline for consistency
+          900: '#b39966',  // surface (cards) — DARKER than body, recessed
+          950: '#c4ad7a',  // body — aged kraft paper
         },
-        // Brand accent. Muted brass — used only for primary buttons + a
-        // few small accents. Deliberately quieter than the prior copper/
-        // honey so it doesn't fight the soft pine canvas.
+        // Brand accent — espresso brass. Quieter than honey, better
+        // contrast on the warmer body.
         honey: {
-          300: '#c9a460',
-          400: '#a07c3a',
-          500: '#8d6a2e',  // primary button bg
-          600: '#7a5a23',
-          700: '#5e4416',
+          300: '#a8893f',
+          400: '#8b6e2a',
+          500: '#6b4d1a',  // primary buttons + brand mark
+          600: '#553c10',
+          700: '#3f2c08',
         },
+      },
+      maxWidth: {
+        app: '720px',  // desktop content cap — keeps cards sensibly sized
       },
       fontFamily: {
         sans: [

@@ -89,8 +89,8 @@ export default function Admin() {
   if (!profile || profile.role !== 'admin') {
     return (
       <div className="p-3 space-y-2">
-        <p className="text-red-400">Admin access required.</p>
-        <Link to="/" className="text-honey-400">← Back to inventory</Link>
+        <p className="text-red-700">Admin access required.</p>
+        <Link to="/" className="text-honey-600">← Back to inventory</Link>
       </div>
     );
   }
@@ -100,7 +100,7 @@ export default function Admin() {
       <div>
         <h2 className="text-xl font-semibold">Admin</h2>
         <p className="text-xs text-slate-500 mt-1">
-          Signed in as <span className="text-slate-300 font-mono">{profile.username}</span> · role <span className="text-honey-400">admin</span>
+          Signed in as <span className="text-slate-300 font-mono">{profile.username}</span> · role <span className="text-honey-600">admin</span>
         </p>
       </div>
 
@@ -127,7 +127,7 @@ export default function Admin() {
         </p>
       </section>
 
-      {error && <p className="text-red-400 text-sm">{error}</p>}
+      {error && <p className="text-red-700 text-sm">{error}</p>}
 
       <section className="space-y-2">
         <h3 className="text-sm font-medium text-slate-200">All invites</h3>
@@ -146,8 +146,8 @@ export default function Admin() {
                   <div className="font-mono text-base tracking-wider text-slate-100">{inv.code}</div>
                   <span className={`pill ${
                     status === 'used'    ? 'bg-slate-500/20 text-slate-300' :
-                    status === 'expired' ? 'bg-red-500/15 text-red-300' :
-                                           'bg-emerald-500/15 text-emerald-300'
+                    status === 'expired' ? 'bg-red-500/15 text-red-700' :
+                                           'bg-emerald-500/15 text-emerald-700'
                   }`}>
                     {status}
                   </span>
@@ -171,7 +171,7 @@ export default function Admin() {
                   <button
                     type="button"
                     onClick={() => remove(inv)}
-                    className="ml-auto text-xs px-2 py-1 text-red-300 hover:text-red-200 hover:bg-red-500/10 rounded transition-colors"
+                    className="ml-auto text-xs px-2 py-1 text-red-700 hover:text-red-800 hover:bg-red-500/10 rounded transition-colors"
                   >
                     {status === 'open' ? 'Revoke' : 'Delete'}
                   </button>

@@ -130,7 +130,7 @@ export default function Sds() {
           })}
         </div>
 
-        {error && <p className="text-red-400 text-sm">{error}</p>}
+        {error && <p className="text-red-700 text-sm">{error}</p>}
         {!decorated && !error && <p className="text-slate-400">Loading…</p>}
 
         {grouped && grouped.length === 0 && (
@@ -328,7 +328,7 @@ function SdsEditor({ item, onClose, onSaved }) {
               type="button"
               disabled={busy}
               onClick={onClear}
-              className="text-xs text-red-300 hover:text-red-200"
+              className="text-xs text-red-700 hover:text-red-800"
             >
               Remove SDS from this item
             </button>
@@ -336,10 +336,10 @@ function SdsEditor({ item, onClose, onSaved }) {
         )}
 
         <div className="border-t border-slate-800 pt-3 text-xs text-slate-400">
-          See full item page: <Link to={`/items/${item.id}`} className="text-honey-400 hover:text-honey-300">{item.sku}</Link>
+          See full item page: <Link to={`/items/${item.id}`} className="text-honey-600 hover:text-honey-600">{item.sku}</Link>
         </div>
 
-        {error && <p className="text-red-400 text-sm">{error}</p>}
+        {error && <p className="text-red-700 text-sm">{error}</p>}
       </div>
     </div>
   );
