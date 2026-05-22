@@ -1,24 +1,55 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
+  isSdsCheckProblem,
   listSdsItems,
+  sdsCheckStatus,
   sdsStatus,
   sdsViewUrl,
   uploadSdsPdf,
   setSdsUrl,
   clearSds,
 } from '../lib/sds.js';
-import { X } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, X } from 'lucide-react';
 import SdsStatusBadge from '../components/SdsStatusBadge.jsx';
 import PullToRefresh from '../components/PullToRefresh.jsx';
 
 const FILTERS = [
   { value: 'all',      label: 'All' },
+  { value: 'problem',  label: 'Bad links' },
   { value: 'missing',  label: 'Missing SDS' },
   { value: 'hint',     label: 'Needs verification' },
   { value: 'linked',   label: 'Linked' },
   { value: 'uploaded', label: 'On file' },
 ];
+
+// Inline indicator for the result of the most recent `npm run check-sds`.
+// Sits next to the SDS status badge on linked rows. Quiet on success
+// (small green check), loud on failure (amber/red triangle + short label).
+function CheckBadge({ status }) {
+  if (!status || status === 'reachable') return null;
+  if (status === 'cas_match') {
+    return (
+      <span className="inline-flex items-center gap-1 text-[10.5px] font-medium uppercase tracking-wider text-emerald-400">
+        <CheckCircle2 size={11} strokeWidth={2.4} />
+        verified
+      </span>
+    );
+  }
+  const label = {
+    cas_mismatch:    'wrong CAS',
+    redirected:      'redirected',
+    not_pdf:         'not a PDF',
+    broken:          'broken',
+    pdf_unparseable: 'unreadable',
+  }[status] ?? status;
+  return (
+    <span className="inline-flex items-center gap-1 text-[10.5px] font-medium uppercase tracking-wider text-amber-300">
+      <AlertTriangle size={11} strokeWidth={2.4} />
+      {label}
+    </span>
+  );
+}
 
 // Compliance manifest screen (OSHA HazCom 1910.1200).
 //
@@ -47,20 +78,31 @@ export default function Sds() {
 
   const decorated = useMemo(() => {
     if (!items) return null;
-    return items.map((it) => ({ ...it, _sds: sdsStatus(it) }));
+    return items.map((it) => ({
+      ...it,
+      _sds:   sdsStatus(it),
+      _check: sdsCheckStatus(it),
+    }));
   }, [items]);
 
   const counts = useMemo(() => {
     if (!decorated) return null;
-    const c = { all: decorated.length, missing: 0, hint: 0, linked: 0, uploaded: 0 };
-    for (const it of decorated) c[it._sds] = (c[it._sds] ?? 0) + 1;
+    const c = { all: decorated.length, missing: 0, hint: 0, linked: 0, uploaded: 0, problem: 0 };
+    for (const it of decorated) {
+      c[it._sds] = (c[it._sds] ?? 0) + 1;
+      if (it._sds === 'linked' && isSdsCheckProblem(it._check)) c.problem += 1;
+    }
     return c;
   }, [decorated]);
 
   const filtered = useMemo(() => {
     if (!decorated) return null;
     let list = decorated;
-    if (filter !== 'all') list = list.filter((it) => it._sds === filter);
+    if (filter === 'problem') {
+      list = list.filter((it) => it._sds === 'linked' && isSdsCheckProblem(it._check));
+    } else if (filter !== 'all') {
+      list = list.filter((it) => it._sds === filter);
+    }
     const s = search.trim().toLowerCase();
     if (s) {
       list = list.filter((it) =>
@@ -163,7 +205,10 @@ export default function Sds() {
                           {it.metadata?.epa_reg_no && <> · EPA {it.metadata.epa_reg_no}</>}
                         </div>
                       </div>
-                      <SdsStatusBadge status={it._sds} />
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        <SdsStatusBadge status={it._sds} />
+                        {it._sds === 'linked' && <CheckBadge status={it._check} />}
+                      </div>
                     </div>
                   </button>
                 </li>
@@ -264,12 +309,34 @@ function SdsEditor({ item, onClose, onSaved }) {
           </button>
         </div>
 
-        <div className="flex items-center gap-2 text-sm">
-          <SdsStatusBadge status={status} size="lg" />
-          {item.metadata?.sds_updated_at && (
-            <span className="text-xs text-slate-500">
-              updated {new Date(item.metadata.sds_updated_at).toLocaleDateString()}
-            </span>
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-sm">
+            <SdsStatusBadge status={status} size="lg" />
+            {item.metadata?.sds_updated_at && (
+              <span className="text-xs text-slate-500">
+                updated {new Date(item.metadata.sds_updated_at).toLocaleDateString()}
+              </span>
+            )}
+          </div>
+          {item.metadata?.sds_check_at && (
+            <div className="text-[11px] text-slate-500">
+              Link checked {new Date(item.metadata.sds_check_at).toLocaleDateString()}
+              {item.metadata.sds_check_status && (
+                <>
+                  {' — '}
+                  <span className={
+                    isSdsCheckProblem(item.metadata.sds_check_status) ? 'text-amber-300'
+                    : item.metadata.sds_check_status === 'cas_match'  ? 'text-emerald-400'
+                    : 'text-slate-400'
+                  }>
+                    {item.metadata.sds_check_status.replace(/_/g, ' ')}
+                  </span>
+                </>
+              )}
+              {item.metadata.sds_check_http_status && item.metadata.sds_check_http_status !== 200 && (
+                <span className="text-slate-500"> · HTTP {item.metadata.sds_check_http_status}</span>
+              )}
+            </div>
           )}
         </div>
 

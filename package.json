@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview --host"
+    "preview": "vite preview --host",
+    "check-sds": "node scripts/check-sds.mjs"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.2.8",
@@ -24,6 +25,7 @@
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",
     "autoprefixer": "^10.4.20",
+    "pdfjs-dist": "^4.7.76",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.13",
     "vite": "^6.0.0",

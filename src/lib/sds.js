@@ -32,6 +32,33 @@ export function sdsStatus(item) {
   return 'missing';
 }
 
+// Health of the external SDS link, as reported by the last `npm run check-sds`
+// pass. Only meaningful for items with sds_status === 'linked'. Returns null
+// when the item hasn't been checked yet so callers can decide whether to
+// surface a "never verified" state.
+//
+//   'cas_match'        — PDF loaded AND contains the expected CAS number ✓
+//   'reachable'        — PDF loaded but item has no CAS to cross-check
+//   'cas_mismatch'     — PDF loaded but expected CAS not found in it ✗
+//   'redirected'       — URL redirected to a different host (usually homepage)
+//   'not_pdf'          — URL responded but the content type wasn't a PDF
+//   'pdf_unparseable'  — got a PDF but couldn't read its text
+//   'broken'           — HTTP error or network failure
+export function sdsCheckStatus(item) {
+  const md = item?.metadata ?? {};
+  return md.sds_check_status ?? null;
+}
+
+// True for any check result that means "this link probably isn't a valid SDS
+// for this product right now." Used to surface a "needs attention" badge on
+// linked rows without spelling out the whole switch every time.
+export function isSdsCheckProblem(status) {
+  return status === 'broken'
+      || status === 'redirected'
+      || status === 'not_pdf'
+      || status === 'cas_mismatch';
+}
+
 export function sdsViewUrl(item) {
   const md = item?.metadata ?? {};
   if (md.sds_path) {
