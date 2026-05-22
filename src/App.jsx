@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
-import { NavLink, Route, Routes, useLocation } from 'react-router-dom';
+import { Link, NavLink, Route, Routes, useLocation } from 'react-router-dom';
 import { isConfigured, isDemoMode, supabase } from './lib/supabase.js';
-import { signOut, useSession } from './lib/auth.jsx';
+import { isAdmin, signOut, useSession, useStaffProfile } from './lib/auth.jsx';
 import { installQueueDrainer } from './lib/offlineQueue.js';
 import AuthGate from './components/AuthGate.jsx';
 import PendingBadge from './components/PendingBadge.jsx';
@@ -14,6 +14,8 @@ import Labels from './pages/Labels.jsx';
 import Scan from './pages/Scan.jsx';
 import Reports from './pages/Reports.jsx';
 import Sds from './pages/Sds.jsx';
+import RedeemInvite from './pages/RedeemInvite.jsx';
+import Admin from './pages/Admin.jsx';
 
 function SetupNeeded() {
   return (
@@ -52,9 +54,14 @@ const tabOrder = tabs.map((t) => t.to);
 
 function AppShell() {
   const { session } = useSession();
+  const { profile } = useStaffProfile();
   const location = useLocation();
   const me =
-    session?.user?.user_metadata?.full_name || session?.user?.email || '';
+    profile?.username ||
+    session?.user?.user_metadata?.full_name ||
+    session?.user?.user_metadata?.username ||
+    session?.user?.email || '';
+  const admin = isAdmin(profile);
 
   // Install the offline-queue drainer once we have a live supabase client.
   // It listens for `online` and ticks every 60s to flush pending movements.
@@ -63,8 +70,8 @@ function AppShell() {
   }, []);
 
   // Only attach the swipe gesture on top-level tab routes. Detail pages
-  // ({/items/:id}, /items/new, /items/:id/edit) shouldn't capture horizontal
-  // drag — the user is reading details, not navigating tabs.
+  // ({/items/:id}, /items/new, /items/:id/edit, /admin) shouldn't capture
+  // horizontal drag — the user is reading details, not navigating tabs.
   const isTabRoute = tabOrder.includes(location.pathname);
 
   const routes = (
@@ -77,6 +84,7 @@ function AppShell() {
       <Route path="/labels"      element={<Labels />} />
       <Route path="/sds"         element={<Sds />} />
       <Route path="/reports"     element={<Reports />} />
+      <Route path="/admin"       element={<Admin />} />
     </Routes>
   );
 
@@ -94,6 +102,14 @@ function AppShell() {
         </h1>
         <div className="flex items-center gap-3 text-sm text-slate-400">
           <PendingBadge />
+          {admin && (
+            <Link
+              to="/admin"
+              className="text-orange-400 hover:text-orange-300 transition-colors text-xs uppercase tracking-wide font-medium"
+            >
+              Admin
+            </Link>
+          )}
           <span className="hidden sm:inline truncate max-w-[12rem]">{me}</span>
           <button
             onClick={() => signOut()}
@@ -140,9 +156,19 @@ function AppShell() {
 
 export default function App() {
   if (!isConfigured) return <SetupNeeded />;
+
+  // Invite redemption needs to render BEFORE AuthGate decides whether to
+  // show the login screen — invitees have no session yet, that's the point.
+  // The route still goes through React Router so direct links work.
   return (
-    <AuthGate>
-      <AppShell />
-    </AuthGate>
+    <Routes>
+      <Route path="/invite"        element={<RedeemInvite />} />
+      <Route path="/invite/:code"  element={<RedeemInvite />} />
+      <Route path="/*" element={
+        <AuthGate>
+          <AppShell />
+        </AuthGate>
+      } />
+    </Routes>
   );
 }
