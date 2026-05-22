@@ -91,7 +91,7 @@ function AppShell() {
   return (
     <div className="flex h-full flex-col">
       {isDemoMode && (
-        <div className="bg-amber-500/15 text-amber-800 text-[11px] font-medium text-center py-1 px-3 border-b border-amber-500/30">
+        <div className="bg-amber-500/15 text-amber-200 text-[11px] font-medium text-center py-1 px-3 border-b border-amber-500/30">
           Demo mode — all data is fake and changes don&rsquo;t persist.
         </div>
       )}
@@ -106,7 +106,7 @@ function AppShell() {
             {admin && (
               <Link
                 to="/admin"
-                className="text-honey-500 hover:text-honey-600 transition-colors text-xs uppercase tracking-wide font-medium"
+                className="text-honey-500 hover:text-honey-400 transition-colors text-xs uppercase tracking-wide font-medium"
               >
                 Admin
               </Link>

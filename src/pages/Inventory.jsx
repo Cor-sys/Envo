@@ -194,16 +194,16 @@ export default function Inventory() {
           >
             <div className="flex items-center justify-between gap-2">
               <div className="text-sm">
-                <span className="font-medium text-amber-800">
+                <span className="font-medium text-amber-200">
                   {counts.out > 0 && (<>{counts.out} OUT </>)}
-                  {counts.out > 0 && counts.low > 0 && (<span className="text-amber-700/60">· </span>)}
+                  {counts.out > 0 && counts.low > 0 && (<span className="text-amber-300/60">· </span>)}
                   {counts.low > 0 && (<>{counts.low} LOW</>)}
                 </span>
-                <span className="text-amber-700/70 ml-2">
+                <span className="text-amber-300/70 ml-2">
                   {attentionOnly ? '— showing attention items only' : '— tap to focus'}
                 </span>
               </div>
-              <span className="text-xs text-amber-700/70 shrink-0">
+              <span className="text-xs text-amber-300/70 shrink-0">
                 {attentionOnly ? 'show all' : 'focus'}
               </span>
             </div>
@@ -252,7 +252,7 @@ export default function Inventory() {
           ))}
         </div>
 
-        {error && <p className="text-red-700 text-sm">{error}</p>}
+        {error && <p className="text-red-300 text-sm">{error}</p>}
 
         {items === null && !error && (
           <p className="text-slate-400">Loading…</p>
@@ -315,13 +315,13 @@ export default function Inventory() {
                 {(outCount > 0 || lowCount > 0) && (
                   <div className="flex items-center gap-2 shrink-0 text-[10.5px] font-medium uppercase tracking-wider">
                     {outCount > 0 && (
-                      <span className="inline-flex items-center gap-1 text-red-700 tabular-nums">
+                      <span className="inline-flex items-center gap-1 text-red-300 tabular-nums">
                         <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500" />
                         {outCount} out
                       </span>
                     )}
                     {lowCount > 0 && (
-                      <span className="inline-flex items-center gap-1 text-amber-700 tabular-nums">
+                      <span className="inline-flex items-center gap-1 text-amber-300 tabular-nums">
                         <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500" />
                         {lowCount} low
                       </span>
@@ -354,7 +354,7 @@ export default function Inventory() {
                             <div className="text-xs text-slate-400 truncate mt-0.5">
                               {subParts.join(' · ')}
                               {it.needs_label && (
-                                <> · <span className="text-amber-700">needs label</span></>
+                                <> · <span className="text-amber-300">needs label</span></>
                               )}
                             </div>
                           </div>

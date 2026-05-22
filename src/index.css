@@ -3,42 +3,41 @@
 @tailwind utilities;
 
 /* ---------------------------------------------------------------------------
- * Stockroom theme — aged kraft canvas, walnut text, espresso-brass accent.
+ * Stockroom theme — deep walnut canvas, cream-honey text, warm brass accent.
  *
- *   Canvas: kraft paper (slate-950 = #c4ad7a). Mid-light warm wood that
- *           reads as a real material, not blank paper.
- *   Surface: RECESSED card (slate-900 = #b39966). Cards are slightly darker
- *           than the body so they look set INTO the wood, not floating
- *           above it. A thin top highlight catches the edge of the recess.
- *   Text:   deep walnut (slate-100 = #241a0c). Dark enough for shop light.
- *   Accent: espresso brass (honey-500 = #6b4d1a). Primary buttons + brand
- *           mark. Quiet — never used for decoration.
+ *   Canvas: walnut (slate-950 = #2e1f12). Deep, warm wood — clearly dark
+ *           but not black. Easy on the eyes in any lighting.
+ *   Surface: LIFTED card (slate-900 = #3f2c1c). Slightly lighter than the
+ *           body so cards read as plaques sitting on the board.
+ *   Text:   cream honey (slate-100 = #f3e1b0). Light without glare.
+ *   Accent: warm brass (honey-500 = #b88532). Buttons + brand only.
  *
- * Theme tokens live in tailwind.config.js; this file owns the components.
+ * Status pills (emerald/amber/red) stay semantic. Quiet dot+text style
+ * — light variants since they sit on dark walnut.
  * --------------------------------------------------------------------------- */
 @layer base {
   html, body, #root { height: 100%; }
   body {
     @apply bg-slate-950 text-slate-100 antialiased;
-    font-feature-settings: 'cv11', 'ss01', 'ss03'; /* Inter humanist tweaks */
-    /* Whisper-soft warmth in the corners — a hint of brass top-right and
-       deeper wood bottom-left so the canvas doesn't read as a flat plane. */
+    font-feature-settings: 'cv11', 'ss01', 'ss03';
+    /* Whisper-soft brass glow in the top-right and deeper wood shadow in
+       the bottom-left so the canvas doesn't read as a flat field. */
     background-image:
-      radial-gradient(at 100% 0%, rgba(107, 77, 26, 0.08) 0%, transparent 60%),
-      radial-gradient(at 0% 100%, rgba(70, 50, 20, 0.10) 0%, transparent 55%);
+      radial-gradient(at 100% 0%, rgba(184, 133, 50, 0.10) 0%, transparent 60%),
+      radial-gradient(at 0% 100%, rgba(20, 12, 6, 0.40) 0%, transparent 55%);
     background-attachment: fixed;
-    color-scheme: light;
+    color-scheme: dark;
   }
 
   button, [role='button'] { touch-action: manipulation; }
 
-  /* Form inputs — light bg, walnut text, hairline border. */
+  /* Form inputs — surface-toned bg, cream text, hairline border. */
   input, select, textarea {
-    @apply bg-slate-900 border-slate-700 text-slate-100 placeholder-slate-400;
-    color-scheme: light;
+    @apply bg-slate-900 border-slate-700 text-slate-100 placeholder-slate-500;
+    color-scheme: dark;
   }
   input:focus, select:focus, textarea:focus {
-    @apply outline-none ring-2 ring-honey-400/40 border-honey-400;
+    @apply outline-none ring-2 ring-honey-400/50 border-honey-400;
   }
 
   .tabular-nums { font-variant-numeric: tabular-nums; }
@@ -50,54 +49,40 @@
     @apply min-h-[44px] min-w-[44px] inline-flex items-center justify-center gap-1.5
            rounded-lg px-3.5 py-2 text-sm font-medium select-none transition-all;
   }
-  /* Primary: solid brass with white text. Matte (no gradient) for a quieter
-     look on the light theme — buttons shouldn't shout. */
+  /* Primary: warm brass with cream text. Matte. */
   .tap-primary {
     @apply tap text-white bg-honey-500
-           hover:bg-honey-600
-           active:bg-honey-700
-           focus-visible:ring-2 focus-visible:ring-honey-400/40 focus-visible:outline-none;
+           hover:bg-honey-400
+           active:bg-honey-600
+           focus-visible:ring-2 focus-visible:ring-honey-400/50 focus-visible:outline-none;
   }
-  /* Secondary: pale surface with hairline border + walnut text. */
   .tap-secondary {
     @apply tap bg-slate-900 text-slate-100 border border-slate-700
-           hover:bg-slate-800/40
-           active:bg-slate-800/60
-           focus-visible:ring-2 focus-visible:ring-honey-400/40 focus-visible:outline-none;
+           hover:bg-slate-800
+           active:bg-slate-700
+           focus-visible:ring-2 focus-visible:ring-honey-400/50 focus-visible:outline-none;
   }
   .tap-danger {
-    @apply tap text-white bg-red-600 hover:bg-red-700 active:bg-red-800
-           focus-visible:ring-2 focus-visible:ring-red-400/40 focus-visible:outline-none;
+    @apply tap text-white bg-red-700 hover:bg-red-800 active:bg-red-900
+           focus-visible:ring-2 focus-visible:ring-red-400/50 focus-visible:outline-none;
   }
 
   /* ----- Surfaces ------------------------------------------------------- */
-  /* Cards are recessed into the wood — surface (slate-900) is darker than
-     body (slate-950). The thin highlight on the top edge of the card is
-     where light would catch the lip of a recess; a soft inner shadow on
-     the bottom mimics the depth. Subtle on purpose. */
+  /* Cards LIFT off the wood — surface (slate-900) is slightly lighter than
+     body (slate-950). A subtle highlight on the top edge catches light;
+     a soft shadow drops the card from the bg. */
   .surface {
     @apply rounded-xl border border-slate-800 bg-slate-900;
     box-shadow:
-      inset 0 1px 0 0 rgba(255, 235, 195, 0.18),
-      inset 0 -1px 0 0 rgba(40, 25, 8, 0.10),
-      0 1px 0 0 rgba(255, 240, 200, 0.10);
+      inset 0 1px 0 0 rgba(255, 220, 160, 0.06),
+      0 1px 2px 0 rgba(0, 0, 0, 0.30);
   }
   .surface-interactive {
     @apply surface transition-colors hover:bg-slate-800/60 active:bg-slate-700/60;
   }
 
-  /* ----- Status indicators (quiet) -------------------------------------- */
-  /* Dot + text — no chip fill. Replaces the prior shouty colored pills. */
-  .status        { @apply inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider; }
-  .status-dot    { @apply inline-block w-1.5 h-1.5 rounded-full; }
-  .status-ok     { @apply text-emerald-700; }
-  .status-ok    .status-dot,
-  .status-ok::before { @apply bg-emerald-500; }
-  .status-low    { @apply text-amber-700; }
-  .status-out    { @apply text-red-700; }
-
-  /* Legacy pill aliases — keep the old .pill-* class names working but
-     render them in the new quiet dot+text style. */
+  /* ----- Status indicators (quiet dot+text) ----------------------------- */
+  /* Light variants since we're on dark walnut. */
   .pill {
     @apply inline-flex items-center gap-1 text-[11px] font-medium uppercase tracking-wider;
   }
@@ -105,19 +90,19 @@
     content: '';
     @apply inline-block w-1.5 h-1.5 rounded-full;
   }
-  .pill-ok         { @apply pill text-emerald-700; }
-  .pill-ok::before { @apply bg-emerald-500; }
-  .pill-low        { @apply pill text-amber-700; }
-  .pill-low::before{ @apply bg-amber-500; }
-  .pill-out        { @apply pill text-red-700; }
-  .pill-out::before{ @apply bg-red-500; }
+  .pill-ok         { @apply pill text-emerald-300; }
+  .pill-ok::before { @apply bg-emerald-400; }
+  .pill-low        { @apply pill text-amber-300; }
+  .pill-low::before{ @apply bg-amber-400; }
+  .pill-out        { @apply pill text-red-300; }
+  .pill-out::before{ @apply bg-red-400; }
 
   /* ----- Navigation chrome --------------------------------------------- */
   .nav-active {
-    @apply text-honey-500;
+    @apply text-honey-400;
   }
   .nav-active-bar {
-    @apply absolute -top-px left-1/2 -translate-x-1/2 h-0.5 w-8 rounded-full bg-honey-500;
+    @apply absolute -top-px left-1/2 -translate-x-1/2 h-0.5 w-8 rounded-full bg-honey-400;
   }
 
   .wordmark {
@@ -125,19 +110,15 @@
     letter-spacing: -0.015em;
   }
   .wordmark-dot {
-    @apply inline-block w-1.5 h-1.5 rounded-full mr-2 align-middle bg-honey-500;
-    box-shadow: 0 0 0 3px rgba(141, 106, 46, 0.15);
+    @apply inline-block w-1.5 h-1.5 rounded-full mr-2 align-middle bg-honey-400;
+    box-shadow: 0 0 0 3px rgba(184, 133, 50, 0.20);
   }
 
-  /* ----- Eyebrow labels (uppercase muted) ------------------------------- */
   .eyebrow {
     @apply text-[10.5px] font-semibold uppercase tracking-[0.08em] text-slate-400;
   }
 }
 
-/* ---------------------------------------------------------------------------
- * Print rules unchanged — labels always print on white paper.
- * --------------------------------------------------------------------------- */
 @layer components {
   .label-sheet {
     display: grid;

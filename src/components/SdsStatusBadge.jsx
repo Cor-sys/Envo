@@ -4,10 +4,10 @@ import { AlertTriangle, CheckCircle2, HelpCircle, Link2 } from 'lucide-react';
 // fill. Maps the lib/sds.js status values to a Lucide icon + label.
 
 const VARIANTS = {
-  uploaded: { Icon: CheckCircle2,  label: 'On file',    color: 'text-emerald-700' },
+  uploaded: { Icon: CheckCircle2,  label: 'On file',    color: 'text-emerald-400' },
   linked:   { Icon: Link2,         label: 'Linked',     color: 'text-honey-500' },
-  hint:     { Icon: HelpCircle,    label: 'Unverified', color: 'text-amber-700' },
-  missing:  { Icon: AlertTriangle, label: 'Missing',    color: 'text-red-700' },
+  hint:     { Icon: HelpCircle,    label: 'Unverified', color: 'text-amber-300' },
+  missing:  { Icon: AlertTriangle, label: 'Missing',    color: 'text-red-300' },
 };
 
 export default function SdsStatusBadge({ status, size = 'sm' }) {
