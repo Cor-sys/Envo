@@ -65,8 +65,7 @@ export default function MapPage() {
 
   return (
     <div className="p-3 space-y-3">
-      <div className="flex items-baseline justify-between gap-2">
-        <h2 className="text-xl font-semibold text-slate-100">Campus map</h2>
+      <div className="flex items-baseline justify-end gap-2">
         {buildings && (
           <span className="text-xs text-slate-500 tabular-nums">
             {buildings.length} buildings

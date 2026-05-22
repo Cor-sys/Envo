@@ -153,8 +153,7 @@ export default function EditItem() {
 
   return (
     <form className="space-y-3 p-3" onSubmit={submit}>
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Edit item</h2>
+      <div className="flex items-center justify-end">
         <button type="button" onClick={() => nav(-1)} className="text-sm text-slate-400 hover:text-slate-200">
           Cancel
         </button>

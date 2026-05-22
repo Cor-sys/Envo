@@ -13,6 +13,7 @@ import SdsStatusBadge from '../components/SdsStatusBadge.jsx';
 import PullToRefresh from '../components/PullToRefresh.jsx';
 import EmptyState from '../components/EmptyState.jsx';
 import ErrorBanner from '../components/ErrorBanner.jsx';
+import { formatAbsolute, formatRelative } from '../lib/format.js';
 
 // Filter chips were dropped once every chemical/paint item had a verified
 // SDS PDF on file — the SDS resolution pass covered the inventory 100%, so
@@ -118,14 +119,13 @@ export default function Sds() {
   return (
     <PullToRefresh onRefresh={load}>
       <div className="space-y-3 p-3">
-        <div className="flex items-baseline justify-between">
-          <h2 className="text-xl font-semibold">SDS manifest</h2>
-          {counts && (
+        {counts && (
+          <div className="flex items-baseline justify-end">
             <span className="text-xs text-slate-400">
               {counts.uploaded + counts.linked}/{counts.all} on file
             </span>
-          )}
-        </div>
+          </div>
+        )}
 
         <input
           className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 placeholder-slate-500"
@@ -255,8 +255,11 @@ function SdsEditor({ item, onClose, onSaved }) {
           <div className="flex items-center gap-2 text-sm">
             <SdsStatusBadge status={status} size="lg" />
             {item.metadata?.sds_updated_at && (
-              <span className="text-xs text-slate-500">
-                updated {new Date(item.metadata.sds_updated_at).toLocaleDateString()}
+              <span
+                className="text-xs text-slate-500"
+                title={formatAbsolute(item.metadata.sds_updated_at)}
+              >
+                updated {formatRelative(item.metadata.sds_updated_at)}
               </span>
             )}
           </div>

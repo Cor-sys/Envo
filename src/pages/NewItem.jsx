@@ -111,8 +111,6 @@ export default function NewItem() {
 
   return (
     <form className="space-y-3 p-3" onSubmit={submit}>
-      <h2 className="text-xl font-semibold">New item</h2>
-
       <label className="block">
         <span className="block text-sm text-slate-300">Type *</span>
         <select

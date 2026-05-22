@@ -34,8 +34,7 @@ export default function Labels() {
 
   return (
     <div className="space-y-3 p-3 labels-page">
-      <div className="flex items-center justify-between no-print">
-        <h2 className="text-xl font-semibold">Labels</h2>
+      <div className="flex items-center justify-end no-print">
         <button
           type="button"
           onClick={() => window.print()}

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Link, NavLink, Route, Routes } from 'react-router-dom';
+import { Link, NavLink, Route, Routes, useLocation } from 'react-router-dom';
 import { BarChart3, FlaskConical, Map as MapIcon, Package, ScanLine } from 'lucide-react';
 import { isConfigured, isDemoMode, supabase } from './lib/supabase.js';
 import { isAdmin, signOut, useStaffProfile } from './lib/auth.jsx';
@@ -42,6 +42,24 @@ function SetupNeeded() {
   );
 }
 
+// Page title derived from pathname. Header carries this so individual
+// pages can drop their redundant <h2>"Page name"</h2>. Detail pages
+// (item detail / edit) stay generic in the header — the page body owns
+// the contextual identity (item name, building name, etc.).
+function getPageTitle(pathname) {
+  if (pathname === '/')          return 'Inventory';
+  if (pathname === '/scan')      return 'Scan';
+  if (pathname === '/sds')       return 'SDS';
+  if (pathname === '/reports')   return 'Reports';
+  if (pathname === '/map')       return 'Map';
+  if (pathname === '/admin')     return 'Admin';
+  if (pathname === '/labels')    return 'Labels';
+  if (pathname === '/items/new') return 'New item';
+  if (pathname.startsWith('/items/') && pathname.endsWith('/edit')) return 'Edit item';
+  if (pathname.startsWith('/items/')) return 'Item';
+  return 'Stockroom';
+}
+
 // Labels was a tab previously but is a once-per-new-item action — it now
 // lives as a button on the Inventory page, freeing the slot for SDS which
 // is checked daily for compliance.
@@ -55,7 +73,9 @@ const tabs = [
 
 function AppShell() {
   const { profile } = useStaffProfile();
+  const location = useLocation();
   const admin = isAdmin(profile);
+  const pageTitle = getPageTitle(location.pathname);
 
   // Install the offline-queue drainer once we have a live supabase client.
   // It listens for `online` and ticks every 60s to flush pending movements.
@@ -75,20 +95,22 @@ function AppShell() {
       )}
       <header className="sticky top-0 z-30 border-b border-slate-800/80 bg-slate-900/85 backdrop-blur">
         <div className="mx-auto max-w-app w-full px-3 sm:px-4 py-2.5 flex items-center justify-between gap-2">
-          <h1 className="wordmark shrink-0">stockroom</h1>
-          <div className="flex items-center gap-2 sm:gap-3 text-sm text-slate-400 min-w-0">
+          <h1 className="text-lg font-semibold tracking-tight text-slate-100 truncate min-w-0">
+            {pageTitle}
+          </h1>
+          <div className="flex items-center gap-2 sm:gap-3 text-sm text-slate-400 shrink-0">
             <PendingBadge />
             {admin && (
               <Link
                 to="/admin"
-                className="text-sage-300 hover:text-sage-200 transition-colors text-xs uppercase tracking-wide font-medium shrink-0"
+                className="text-sage-300 hover:text-sage-200 transition-colors text-xs uppercase tracking-wide font-medium"
               >
                 Admin
               </Link>
             )}
             <button
               onClick={() => signOut()}
-              className="text-xs sm:text-sm text-slate-500 hover:text-slate-200 transition-colors shrink-0"
+              className="text-xs sm:text-sm text-slate-500 hover:text-slate-200 transition-colors"
             >
               Sign out
             </button>
