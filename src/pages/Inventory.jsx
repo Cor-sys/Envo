@@ -78,6 +78,29 @@ export default function Inventory() {
     return attentionOnly ? items.filter((it) => it.status !== 'ok') : items;
   }, [items, attentionOnly]);
 
+  // Bucket the visible items by item_type. Groups render alphabetically by
+  // label (Belts → Chemicals → Light bulbs → …) and items within each group
+  // sort alphabetically by name, so a staffer scrolling the All view can
+  // always predict where to find something. The attention banner up top
+  // and per-group OUT/LOW chips in each section header keep priority items
+  // visible without breaking that alphabetical order.
+  const groupedVisible = useMemo(() => {
+    if (!visible) return null;
+    const byType = new Map();
+    for (const it of visible) {
+      const key = it.item_type ?? 'unknown';
+      if (!byType.has(key)) byType.set(key, []);
+      byType.get(key).push(it);
+    }
+    const groups = [...byType.entries()].map(([type, arr]) => ({
+      type,
+      label: itemTypeLabel(type),
+      items: [...arr].sort((a, b) => (a.name ?? '').localeCompare(b.name ?? '')),
+    }));
+    groups.sort((a, b) => a.label.localeCompare(b.label));
+    return groups;
+  }, [visible]);
+
   // Recent items: look them up in the full inventory list, preserving the
   // recency order returned by the txn query. Hidden when filters/search are
   // active (they'd compete with the main result set).
@@ -201,47 +224,79 @@ export default function Inventory() {
           </div>
         )}
 
-        {visible && visible.length > 0 && (
-          <ul className="space-y-2">
-            {visible.map((it) => {
-              const md = it.metadata ?? {};
-              const subParts = [];
-              if (it.brand) subParts.push(it.brand);
-              if (md.watts) subParts.push(`${md.watts}W`);
-              subParts.push(it.sku);
-              return (
-                <li key={it.id}>
-                  <Link
-                    to={`/items/${it.id}`}
-                    className="block surface-interactive p-3"
-                  >
-                    <div className="flex items-start gap-3">
-                      <Thumb item={it} />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-slate-100 truncate">{it.name}</span>
-                          <span className="shrink-0 rounded bg-slate-800/80 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-slate-400">
-                            {itemTypeLabel(it.item_type)}
-                          </span>
+        {groupedVisible && groupedVisible.length > 0 && groupedVisible.map((group) => {
+          // Per-group attention counts so the header can flag "2 OUT" etc.
+          let outCount = 0, lowCount = 0;
+          for (const it of group.items) {
+            if (it.status === 'out') outCount += 1;
+            else if (it.status === 'low') lowCount += 1;
+          }
+          return (
+            <section key={group.type} className="space-y-2">
+              <div className="sticky top-0 z-10 -mx-3 px-3 py-1.5 bg-slate-950/85 backdrop-blur border-b border-slate-800/60 flex items-center justify-between">
+                <div className="flex items-baseline gap-2 min-w-0">
+                  <h3 className="text-xs uppercase tracking-wider font-semibold text-slate-200 truncate">
+                    {group.label}
+                  </h3>
+                  <span className="text-[11px] text-slate-500 tabular-nums shrink-0">
+                    {group.items.length}
+                  </span>
+                </div>
+                {(outCount > 0 || lowCount > 0) && (
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {outCount > 0 && (
+                      <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-red-500/15 text-red-300 tabular-nums">
+                        {outCount} OUT
+                      </span>
+                    )}
+                    {lowCount > 0 && (
+                      <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 tabular-nums">
+                        {lowCount} LOW
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <ul className="space-y-2">
+                {group.items.map((it) => {
+                  const md = it.metadata ?? {};
+                  const subParts = [];
+                  if (it.brand) subParts.push(it.brand);
+                  if (md.watts) subParts.push(`${md.watts}W`);
+                  subParts.push(it.sku);
+                  return (
+                    <li key={it.id}>
+                      <Link
+                        to={`/items/${it.id}`}
+                        className="block surface-interactive p-3"
+                      >
+                        <div className="flex items-start gap-3">
+                          <Thumb item={it} />
+                          <div className="min-w-0 flex-1">
+                            <div className="font-medium text-slate-100 truncate">
+                              {it.name}
+                            </div>
+                            <div className="text-xs text-slate-400 truncate mt-0.5">
+                              {subParts.join(' · ')}
+                              {it.needs_label && (
+                                <> · <span className="text-amber-300">needs label</span></>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="text-sm text-slate-200 tabular-nums">{it.qty}</span>
+                            <StatusPill status={it.status} />
+                          </div>
                         </div>
-                        <div className="text-xs text-slate-400 truncate mt-0.5">
-                          {subParts.join(' · ')}
-                          {it.needs_label && (
-                            <> · <span className="text-amber-300">needs label</span></>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className="text-sm text-slate-200 tabular-nums">{it.qty}</span>
-                        <StatusPill status={it.status} />
-                      </div>
-                    </div>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        )}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          );
+        })}
       </div>
     </PullToRefresh>
   );
