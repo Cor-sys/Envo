@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
+  cacheSdsFromUrl,
   isSdsCheckProblem,
   listSdsItems,
   sdsCheckStatus,
@@ -283,6 +284,24 @@ function SdsEditor({ item, onClose, onSaved }) {
     }
   }
 
+  // Manual cache trigger for linked-but-not-yet-cached items. setSdsUrl
+  // already auto-attempts this on first save; this button is for the
+  // 13 items that got their sds_url from the import migration before the
+  // auto-cache existed, plus a retry path when the auto-attempt failed.
+  async function onCache() {
+    if (!item.metadata?.sds_url) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await cacheSdsFromUrl(item.id, item.metadata.sds_url);
+      await onSaved();
+    } catch (err) {
+      setError(`Couldn't cache: ${err.message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div
       className="fixed inset-0 z-40 bg-slate-950/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-3"
@@ -351,6 +370,17 @@ function SdsEditor({ item, onClose, onSaved }) {
              status === 'linked'   ? 'Open external SDS' :
                                      'Search for SDS (Google)'}
           </a>
+        )}
+
+        {status === 'linked' && (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={onCache}
+            className="tap-primary w-full"
+          >
+            {busy ? 'Caching…' : 'Save PDF locally'}
+          </button>
         )}
 
         <div className="border-t border-slate-800 pt-3 space-y-2">
