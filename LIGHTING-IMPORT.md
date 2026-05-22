@@ -38,35 +38,45 @@ supplies count went from 1 → 2.
 `ON CONFLICT (sku) DO NOTHING` clause makes it idempotent against the
 LB001–LB031 range.
 
-## Known gaps to fix in the data-completion pass
+## Data-completion pass — 2026-05-22
 
-Items still missing key spec data (parallel to the SDS resolution work):
+Same pattern as the SDS resolution: WebSearch by `brand + watts + lamp_type`,
+verify against the manufacturer's cut sheet, fill `metadata.lumens` /
+`lifespan_hours` / `cri` / `model_code` via `UPDATE items`. For HID lamps
+where the wattage couldn't be pinned to a specific model without the box
+in hand, a `completion_note` lists the manufacturer's variant set so the
+user can match on a walk-through.
 
-### Wattage marked "?" (6 rows)
-- LB006 Unknown linear fluorescent (X11293)
-- LB017 Philips Mercury vapor (paper-wrapped)
-- LB018 Sylvania Metalarc
-- LB019 Sylvania Metalarc Pro-Tech MP
-- LB020 Sylvania Lumalux (paper-wrapped HPS)
-- LB029 Philips #34257-6
+### Verified specs added (9 rows)
 
-### Model code "—" / missing (several)
-- LB005 Philips Alto 20W T12
-- LB017 Philips Mercury vapor
-- LB023 Appliance bulb (unbranded)
-- LB024 Ecosmart 75W eq. LED
-- LB025 Feit 60W eq. LED A19
-- LB026 Hizashi LED filament
-- LB027 Feit 50W eq. Enhance reflector
-- LB030 GE DDK projector lamp
+| sku | what was filled |
+|---|---|
+| LB007 | Sylvania CF42DT/E/IN/841 — lumens 3200, lifespan 12000h, CRI 82 |
+| LB018 | Sylvania Metalarc — variant note (70/100/150/175/250/400/1000W variants) |
+| LB019 | Sylvania Metalarc Pro-Tech MP — variant note (50/70/100/150/175W variants) |
+| LB020 | Sylvania Lumalux HPS — variant note (50/70/100/150/200/250/400/1000W variants) |
+| LB022 | Sylvania 65W BR30 incandescent — lumens 620, 2000h, 120V |
+| LB024 | Ecosmart 75W-eq A19 LED — lumens 1100, 25000h, model ECS A19 75WE |
+| LB025 | Feit 60W-eq A19 LED — lumens 800, 11000h, CRI 80, model A800/827/10KLED/10/RP |
+| LB026 | Hizashi candelabra LED — lumens 550 (6W), 25000h, CRI 90+ |
+| LB027 | Feit Enhance PAR20 — lumens 450, 25000h, CRI 90+, model PAR20DM-9{30,50}CA |
 
-### Unknown brand
-- LB006 — only box marking is "X11293"
+### Still need physical inspection (8 rows)
 
-### Strategy
-Same as the SDS resolution: WebSearch by `brand + watts + lamp_type`,
-verify against the manufacturer's cut sheet, fill `metadata.model_code`,
-`metadata.lumens`, `metadata.lifespan_hours`, etc. via `UPDATE items`.
+These need someone to pull the actual bulb off the shelf and read the
+box. The `completion_note` field on each row gives the variants to
+match against:
 
-Items where the brand or model can't be resolved get rolled into a
-follow-up deletion log (analogous to `SDS-DELETION-CANDIDATES.md`).
+- **LB006** — Unknown brand, box marked "X11293". Possibly a discontinued line.
+- **LB017** — Philips mercury vapor, paper-wrapped. Wattage variants: 50/75/100/175/250/400W.
+- **LB018, LB019, LB020** — Sylvania HID. Wattage notes already in metadata.
+- **LB023** — Unbranded appliance bulb (40W clear A-shape). Generic.
+- **LB029** — Philips #34257-6 incandescent intermediate base. Old part number.
+- **LB030** — GE DDK projector lamp ("Made in USA"). Old photographic/AV lamp.
+
+### Strategy for the remaining 8
+
+Same retire-or-relabel option as the SDS deletion log. When walking
+the inventory, if any of these don't have a real product on shelf
+that matches, delete the row and add an entry to a `LIGHTING-DELETION-CANDIDATES.md`
+log (TBD if needed).
