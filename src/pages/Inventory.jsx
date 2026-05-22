@@ -328,11 +328,14 @@ export default function Inventory() {
                   if (it.brand) subParts.push(it.brand);
                   if (md.watts) subParts.push(`${md.watts}W`);
                   subParts.push(it.sku);
+                  const rowAccent = it.status === 'out' ? 'row-out'
+                                  : it.status === 'low' ? 'row-low'
+                                  : '';
                   return (
                     <li key={it.id}>
                       <Link
                         to={`/items/${it.id}`}
-                        className="block surface-interactive p-3"
+                        className={`block surface-interactive p-3 ${rowAccent}`}
                       >
                         <div className="flex items-start gap-3">
                           <Thumb item={it} />

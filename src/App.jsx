@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { Link, NavLink, Route, Routes } from 'react-router-dom';
+import { BarChart3, FlaskConical, Map as MapIcon, Package, ScanLine } from 'lucide-react';
 import { isConfigured, isDemoMode, supabase } from './lib/supabase.js';
 import { isAdmin, signOut, useStaffProfile } from './lib/auth.jsx';
 import { installQueueDrainer } from './lib/offlineQueue.js';
@@ -45,11 +46,11 @@ function SetupNeeded() {
 // lives as a button on the Inventory page, freeing the slot for SDS which
 // is checked daily for compliance.
 const tabs = [
-  { to: '/',        label: 'Inventory' },
-  { to: '/scan',    label: 'Scan' },
-  { to: '/sds',     label: 'SDS' },
-  { to: '/reports', label: 'Reports' },
-  { to: '/map',     label: 'Map' },
+  { to: '/',        label: 'Inventory', Icon: Package      },
+  { to: '/scan',    label: 'Scan',      Icon: ScanLine     },
+  { to: '/sds',     label: 'SDS',       Icon: FlaskConical },
+  { to: '/reports', label: 'Reports',   Icon: BarChart3    },
+  { to: '/map',     label: 'Map',       Icon: MapIcon      },
 ];
 
 function AppShell() {
@@ -95,7 +96,7 @@ function AppShell() {
         </div>
       </header>
 
-      <main className="pb-24">
+      <main className="pb-28">
         <div className="mx-auto max-w-app w-full">
           <Routes>
             <Route path="/"            element={<Inventory />} />
@@ -114,21 +115,23 @@ function AppShell() {
 
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-800/80 bg-slate-900/95 backdrop-blur">
         <ul className="mx-auto grid max-w-app grid-cols-5">
-          {tabs.map((t) => (
-            <li key={t.to} className="relative">
+          {tabs.map(({ to, label, Icon }) => (
+            <li key={to} className="relative">
               <NavLink
-                to={t.to}
-                end={t.to === '/'}
+                to={to}
+                end={to === '/'}
                 className={({ isActive }) =>
-                  `tap w-full flex-col text-xs transition-colors relative ${
-                    isActive ? 'nav-active' : 'text-slate-400'
+                  `flex w-full flex-col items-center justify-center gap-1 min-h-[56px]
+                   pt-2 pb-2 text-[11px] font-medium transition-colors select-none relative ${
+                    isActive ? 'nav-active' : 'text-slate-400 hover:text-slate-200'
                   }`
                 }
               >
                 {({ isActive }) => (
                   <>
                     {isActive && <span className="nav-active-bar" />}
-                    {t.label}
+                    <Icon size={20} strokeWidth={isActive ? 2.2 : 1.8} aria-hidden="true" />
+                    <span>{label}</span>
                   </>
                 )}
               </NavLink>
