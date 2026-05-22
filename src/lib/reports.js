@@ -10,7 +10,7 @@ import { supabase } from './supabase.js';
 export async function getInventorySnapshot() {
   const { data, error } = await supabase
     .from('items_with_status')
-    .select('id, sku, item_type, category, name, brand, qty, threshold, status, location_text, barcode')
+    .select('id, sku, item_type, category, name, brand, model, qty, threshold, status, location_text, barcode, image_path, metadata')
     .order('item_type')
     .order('name');
   if (error) throw error;
@@ -30,9 +30,11 @@ export function deriveReorderList(items) {
       category: i.category,
       name: i.name,
       brand: i.brand,
+      model: i.model,
       qty: i.qty,
       threshold: i.threshold,
       location_text: i.location_text,
+      metadata: i.metadata,
       suggested_qty: Math.max(i.threshold - i.qty, 1),
       status: i.status, // 'out' or 'low'
     }))

@@ -200,3 +200,32 @@ export async function recentTransactions(itemId, limit = 10) {
   if (error) throw error;
   return data;
 }
+
+// IDs of items the current user has touched most recently. The list is
+// returned in recency order (most recent first) and deduped — multiple
+// scans of the same item only count once.
+// The caller joins these IDs against an items list they already have
+// (typically the Inventory snapshot) to avoid a second round trip.
+export async function getMyRecentItemIds(limit = 8) {
+  const sessRes = await supabase.auth.getSession();
+  const userId = sessRes.data.session?.user?.id;
+  if (!userId) return [];
+
+  const { data: txns, error } = await supabase
+    .from('transactions')
+    .select('item_id, occurred_at')
+    .eq('staff_id', userId)
+    .order('occurred_at', { ascending: false })
+    .limit(50);
+  if (error) throw error;
+
+  const ids = [];
+  const seen = new Set();
+  for (const t of txns ?? []) {
+    if (seen.has(t.item_id)) continue;
+    seen.add(t.item_id);
+    ids.push(t.item_id);
+    if (ids.length >= limit) break;
+  }
+  return ids;
+}
