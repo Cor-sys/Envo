@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Pencil, Plus, X } from 'lucide-react';
 import {
   addBuildingItem,
@@ -30,6 +30,9 @@ export default function MapPage() {
   const [buildings, setBuildings] = useState(null);
   const [error, setError] = useState(null);
   const [openId, setOpenId] = useState(null);
+  // Deep-link support: /map?building=<uuid> opens that building's sheet on
+  // load. Used by the ItemDetail cross-reference ("Used in buildings: …").
+  const [searchParams, setSearchParams] = useSearchParams();
 
   useEffect(() => {
     let cancelled = false;
@@ -38,6 +41,25 @@ export default function MapPage() {
       .catch((e) => { if (!cancelled) setError(e.message); });
     return () => { cancelled = true; };
   }, []);
+
+  // Sync the ?building param into local state. Reading it as a useEffect
+  // (vs. inline) keeps the back-button behaviour clean — go back, sheet
+  // closes; come back forward, it reopens.
+  useEffect(() => {
+    const id = searchParams.get('building');
+    if (id) setOpenId(id);
+  }, [searchParams]);
+
+  function closeSheet() {
+    setOpenId(null);
+    // Strip the query param so closing the sheet doesn't leave a stale URL
+    // that would re-open the same sheet on the next render.
+    if (searchParams.has('building')) {
+      const next = new URLSearchParams(searchParams);
+      next.delete('building');
+      setSearchParams(next, { replace: true });
+    }
+  }
 
   return (
     <div className="p-3 space-y-3">
@@ -100,7 +122,7 @@ export default function MapPage() {
       {openId && (
         <BuildingSheet
           id={openId}
-          onClose={() => setOpenId(null)}
+          onClose={closeSheet}
         />
       )}
     </div>

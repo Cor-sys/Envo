@@ -79,3 +79,18 @@ export async function removeBuildingItem(buildingId, itemId) {
     .eq('item_id', itemId);
   if (error) throw error;
 }
+
+// Reverse lookup: which buildings stock this item? Used by the ItemDetail
+// page to render "Used in buildings: 3, 7, 12" with tap-through. Sorted
+// by building number so the cross-reference reads consistently.
+export async function listBuildingsForItem(itemId) {
+  const { data, error } = await supabase
+    .from('building_items')
+    .select('usage_note, building:buildings(id, number, name)')
+    .eq('item_id', itemId);
+  if (error) throw error;
+  return (data ?? [])
+    .map((row) => ({ ...row.building, usage_note: row.usage_note }))
+    .filter((b) => b.id)
+    .sort((a, b) => (a.number ?? 0) - (b.number ?? 0));
+}

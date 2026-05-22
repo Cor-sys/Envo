@@ -7,6 +7,7 @@ import {
   recentTransactions,
   recordMovement,
 } from '../lib/items.js';
+import { listBuildingsForItem } from '../lib/buildings.js';
 import { photoUrl } from '../lib/photos.js';
 import { success as hapticSuccess, error as hapticError, tap as hapticTap } from '../lib/haptics.js';
 import StatusPill from '../components/StatusPill.jsx';
@@ -27,6 +28,7 @@ export default function ItemDetail() {
   const nav = useNavigate();
   const [item, setItem] = useState(null);
   const [txns, setTxns] = useState([]);
+  const [buildings, setBuildings] = useState([]);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -36,9 +38,16 @@ export default function ItemDetail() {
   async function reload() {
     setError(null);
     try {
-      const [it, t] = await Promise.all([getItem(id), recentTransactions(id, 10)]);
+      const [it, t, b] = await Promise.all([
+        getItem(id),
+        recentTransactions(id, 10),
+        // Soft-fail the buildings join: a missing buildings table or RLS
+        // hiccup shouldn't break the rest of the item detail page.
+        listBuildingsForItem(id).catch(() => []),
+      ]);
       setItem(it);
       setTxns(t);
+      setBuildings(b);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -268,6 +277,34 @@ export default function ItemDetail() {
             ))}
         </dl>
       </section>
+
+      {buildings.length > 0 && (
+        <section className="space-y-2">
+          <h3 className="text-sm font-medium text-slate-300">
+            Used in {buildings.length} building{buildings.length === 1 ? '' : 's'}
+          </h3>
+          <ul className="surface divide-y divide-slate-800">
+            {buildings.map((b) => (
+              <li key={b.id}>
+                <Link
+                  to={`/map?building=${b.id}`}
+                  className="flex items-center gap-3 px-3 py-2 text-sm text-slate-100 hover:bg-slate-800/40 transition-colors"
+                >
+                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-honey-500 text-[11px] font-semibold text-white tabular-nums shrink-0">
+                    {b.number}
+                  </span>
+                  <span className="flex-1 min-w-0 truncate">{b.name}</span>
+                  {b.usage_note && (
+                    <span className="text-[11px] text-slate-500 truncate max-w-[10rem] shrink-0">
+                      {b.usage_note}
+                    </span>
+                  )}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="space-y-2">
         <h3 className="text-sm font-medium text-slate-300">Recent activity</h3>
