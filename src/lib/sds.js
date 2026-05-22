@@ -103,12 +103,42 @@ export async function uploadSdsPdf(itemId, file, existingMetadata = {}) {
   return path;
 }
 
-// Save an external SDS URL on the item (no upload). Useful when the
-// manufacturer hosts the latest revision online.
+// Save an external SDS URL on the item. Auto-attempts to cache the PDF
+// locally via the cache-sds Edge Function — the function downloads the
+// file server-side (most manufacturer hosts block CORS so this can't
+// happen from the browser) and switches sds_url → sds_path on success.
+// The cache call is best-effort: if it fails, the URL still gets saved
+// and the user can retry with the "Cache PDF locally" button.
 export async function setSdsUrl(itemId, url, existingMetadata = {}) {
   const next = { ...existingMetadata, sds_url: url.trim(), sds_updated_at: new Date().toISOString() };
   delete next.sds_path; // external link supersedes any prior uploaded PDF
   await patchItemMetadata(itemId, next);
+
+  // Fire-and-forget cache attempt. The function will replace sds_url with
+  // sds_path on success; on failure we just keep the URL.
+  cacheSdsFromUrl(itemId, url.trim()).catch(() => { /* best effort */ });
+}
+
+// Server-side cache: invoke the cache-sds Edge Function for an item with
+// an external sds_url. Returns the function's response so callers can
+// show success/failure messaging when invoked manually.
+export async function cacheSdsFromUrl(itemId, url) {
+  const { data, error } = await supabase.functions.invoke('cache-sds', {
+    body: { item_id: itemId, url },
+  });
+  if (error) {
+    // Functions client surfaces a generic error message; the response body
+    // usually has the specific reason we want to show.
+    const msg = error.context?.body
+      ? (await tryReadBody(error.context)).error ?? error.message
+      : error.message;
+    throw new Error(msg ?? 'Cache failed');
+  }
+  return data;
+}
+
+async function tryReadBody(ctx) {
+  try { return await ctx.json(); } catch { return {}; }
 }
 
 export async function clearSds(itemId, existingMetadata = {}) {
