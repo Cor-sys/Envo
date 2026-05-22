@@ -78,10 +78,12 @@ export default function Inventory() {
     return attentionOnly ? items.filter((it) => it.status !== 'ok') : items;
   }, [items, attentionOnly]);
 
-  // Bucket the visible items by item_type, preserving the status-first order
-  // returned by listItems within each bucket. Group order follows the
-  // ITEM_TYPES constant so the page is consistent — Light bulbs first,
-  // Supplies last — even as users add new types or item counts shift.
+  // Bucket the visible items by item_type. Groups render alphabetically by
+  // label (Belts → Chemicals → Light bulbs → …) and items within each group
+  // sort alphabetically by name, so a staffer scrolling the All view can
+  // always predict where to find something. The attention banner up top
+  // and per-group OUT/LOW chips in each section header keep priority items
+  // visible without breaking that alphabetical order.
   const groupedVisible = useMemo(() => {
     if (!visible) return null;
     const byType = new Map();
@@ -90,19 +92,13 @@ export default function Inventory() {
       if (!byType.has(key)) byType.set(key, []);
       byType.get(key).push(it);
     }
-    const ordered = [];
-    for (const t of ITEM_TYPES) {
-      const arr = byType.get(t.value);
-      if (arr && arr.length > 0) {
-        ordered.push({ type: t.value, label: t.label, items: arr });
-        byType.delete(t.value);
-      }
-    }
-    // Catch any unexpected item_type not in ITEM_TYPES so it still renders.
-    for (const [type, arr] of byType) {
-      ordered.push({ type, label: itemTypeLabel(type), items: arr });
-    }
-    return ordered;
+    const groups = [...byType.entries()].map(([type, arr]) => ({
+      type,
+      label: itemTypeLabel(type),
+      items: [...arr].sort((a, b) => (a.name ?? '').localeCompare(b.name ?? '')),
+    }));
+    groups.sort((a, b) => a.label.localeCompare(b.label));
+    return groups;
   }, [visible]);
 
   // Recent items: look them up in the full inventory list, preserving the
