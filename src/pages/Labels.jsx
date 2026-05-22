@@ -3,6 +3,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { itemTypeLabel, listItemsNeedingLabel } from '../lib/items.js';
 import EmptyState from '../components/EmptyState.jsx';
 import ErrorBanner from '../components/ErrorBanner.jsx';
+import { SkeletonList } from '../components/Skeleton.jsx';
 
 export default function Labels() {
   const [items, setItems] = useState(null);
@@ -51,7 +52,7 @@ export default function Labels() {
       </p>
 
       <ErrorBanner message={error} className="no-print" />
-      {items === null && !error && <p className="text-slate-400 no-print">Loading…</p>}
+      {items === null && !error && <div className="no-print"><SkeletonList rows={5} /></div>}
 
       {items && items.length === 0 && (
         <EmptyState

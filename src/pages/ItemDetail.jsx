@@ -179,9 +179,9 @@ export default function ItemDetail() {
     }
   }
 
-  if (!item && error) return <div className="p-3 text-red-300">{error}</div>;
-  if (!item && loaded) return <div className="p-3 text-slate-400">Item not found.</div>;
-  if (!item) return <div className="p-3 text-slate-400">Loading…</div>;
+  if (!item && error) return <div className="p-3"><ErrorBanner message={error} /></div>;
+  if (!item && loaded) return <div className="p-3"><ErrorBanner message="Item not found." /></div>;
+  if (!item) return <div className="p-3 text-slate-400 text-sm">Loading…</div>;
 
   const md = item.metadata ?? {};
   const subParts = [];
