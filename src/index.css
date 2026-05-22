@@ -3,28 +3,29 @@
 @tailwind utilities;
 
 /* ---------------------------------------------------------------------------
- * Stockroom theme — deep walnut canvas, cream-honey text, warm brass accent.
+ * Stockroom theme — midnight slate canvas, cool gray-blue text, brass accent.
  *
- *   Canvas: walnut (slate-950 = #2e1f12). Deep, warm wood — clearly dark
- *           but not black. Easy on the eyes in any lighting.
- *   Surface: LIFTED card (slate-900 = #3f2c1c). Slightly lighter than the
- *           body so cards read as plaques sitting on the board.
- *   Text:   cream honey (slate-100 = #f3e1b0). Light without glare.
- *   Accent: warm brass (honey-500 = #b88532). Buttons + brand only.
+ *   Canvas: slate (slate-950 = #2c3e50). A classic dashboard dark, cool
+ *           but not black — easy on the eyes in any lighting.
+ *   Surface: LIFTED card (slate-900 = #34495e). Slightly lighter than the
+ *           body so cards read as plaques on the slate.
+ *   Text:   cool gray-blue (slate-100 = #d0d9df). Light without glare.
+ *   Accent: warm brass (honey-500 = #b88532). The warm/cool contrast is
+ *           the design move — like brass fittings on a slate console.
  *
- * Status pills (emerald/amber/red) stay semantic. Quiet dot+text style
- * — light variants since they sit on dark walnut.
+ * Status pills (emerald/amber/red) stay semantic. Light variants since
+ * we're on a dark cool canvas.
  * --------------------------------------------------------------------------- */
 @layer base {
   html, body, #root { height: 100%; }
   body {
     @apply bg-slate-950 text-slate-100 antialiased;
     font-feature-settings: 'cv11', 'ss01', 'ss03';
-    /* Whisper-soft brass glow in the top-right and deeper wood shadow in
-       the bottom-left so the canvas doesn't read as a flat field. */
+    /* Subtle warm brass glow in the top-right + deeper slate shadow in the
+       bottom-left so the canvas doesn't read as a flat field. */
     background-image:
-      radial-gradient(at 100% 0%, rgba(184, 133, 50, 0.10) 0%, transparent 60%),
-      radial-gradient(at 0% 100%, rgba(20, 12, 6, 0.40) 0%, transparent 55%);
+      radial-gradient(at 100% 0%, rgba(184, 133, 50, 0.08) 0%, transparent 60%),
+      radial-gradient(at 0% 100%, rgba(16, 24, 38, 0.45) 0%, transparent 55%);
     background-attachment: fixed;
     color-scheme: dark;
   }
