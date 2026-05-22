@@ -19,4 +19,6 @@ scripts/sds-link-matches.json
 scripts/sds-link-verdicts.json
 scripts/sds-link-apply.json
 scripts/sds-mismatch-report.json
+scripts/sds-hint-candidates.json
+scripts/sds-hint-verdicts.json
 sds-check.pdf
