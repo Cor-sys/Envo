@@ -33,16 +33,22 @@ function Thumb({ item, size = 'sm' }) {
 // Persisted collapsed-group state. With 11+ type groups after the chemical
 // import a single Inventory page is several hundred items long; remembering
 // which groups the user has hidden across reloads makes scrolling sane.
+//
+// First visit (no localStorage entry yet) collapses ALL groups by default
+// so the page opens compact — the user sees the catalog at a glance and
+// expands the section they need. Subsequent visits restore whatever they
+// left collapsed. `loadCollapsed()` returns null in that first-visit case
+// so the page can initialise the Set once it knows the actual group keys.
 const COLLAPSE_STORAGE_KEY = 'stockroom.inventory.collapsedGroups.v1';
 function loadCollapsed() {
-  if (typeof localStorage === 'undefined') return new Set();
+  if (typeof localStorage === 'undefined') return null; // SSR-safe; first-visit treated downstream
   try {
     const raw = localStorage.getItem(COLLAPSE_STORAGE_KEY);
-    if (!raw) return new Set();
+    if (!raw) return null;                                // first visit — collapse all once groups load
     const arr = JSON.parse(raw);
     return new Set(Array.isArray(arr) ? arr : []);
   } catch {
-    return new Set();
+    return null;
   }
 }
 function saveCollapsed(set) {
@@ -57,12 +63,18 @@ export default function Inventory() {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [attentionOnly, setAttentionOnly] = useState(false);
+  // `collapsed === null` is the first-visit sentinel — once groups load we
+  // populate it with every group key (default = all collapsed). All other
+  // code that consumes `collapsed` treats null as the empty set for
+  // membership tests, since the very first render runs before items have
+  // arrived anyway.
   const [collapsed, setCollapsed] = useState(loadCollapsed);
   const [error, setError] = useState(null);
 
   function toggleGroup(key) {
     setCollapsed((prev) => {
-      const next = new Set(prev);
+      const base = prev instanceof Set ? prev : new Set();
+      const next = new Set(base);
       if (next.has(key)) next.delete(key); else next.add(key);
       saveCollapsed(next);
       return next;
@@ -142,6 +154,18 @@ export default function Inventory() {
     groups.sort((a, b) => a.label.localeCompare(b.label));
     return groups;
   }, [visible]);
+
+  // First-visit default: once groups arrive AND we have no prior collapsed
+  // state in localStorage (sentinel `null`), collapse every group. This
+  // gives staff a compact "table of contents" landing view; they tap to
+  // open the section they care about.
+  useEffect(() => {
+    if (collapsed === null && groupedVisible && groupedVisible.length > 0) {
+      const allKeys = new Set(groupedVisible.map((g) => g.type));
+      setCollapsed(allKeys);
+      saveCollapsed(allKeys);
+    }
+  }, [collapsed, groupedVisible]);
 
   // Recent items: look them up in the full inventory list, preserving the
   // recency order returned by the txn query. Hidden when filters/search are
@@ -272,17 +296,24 @@ export default function Inventory() {
           </div>
         )}
 
-        {groupedVisible && groupedVisible.length > 1 && (
-          <div className="flex justify-end -my-1">
-            <button
-              type="button"
-              onClick={() => setAllCollapsed(collapsed.size < groupedVisible.length)}
-              className="text-[11px] text-slate-400 hover:text-slate-200 transition-colors"
-            >
-              {collapsed.size < groupedVisible.length ? 'Collapse all' : 'Expand all'}
-            </button>
-          </div>
-        )}
+        {groupedVisible && groupedVisible.length > 1 && (() => {
+          // `collapsed` is null on the very first render before the
+          // first-visit-default effect fires; treat that as "everything
+          // collapsed" since that's the state we're about to set.
+          const collapsedSize = collapsed instanceof Set ? collapsed.size : groupedVisible.length;
+          const allCollapsed = collapsedSize >= groupedVisible.length;
+          return (
+            <div className="flex justify-end -my-1">
+              <button
+                type="button"
+                onClick={() => setAllCollapsed(!allCollapsed)}
+                className="text-[11px] text-slate-400 hover:text-slate-200 transition-colors"
+              >
+                {allCollapsed ? 'Expand all' : 'Collapse all'}
+              </button>
+            </div>
+          );
+        })()}
 
         {groupedVisible && groupedVisible.length > 0 && groupedVisible.map((group) => {
           // Per-group attention counts so the header can flag "2 OUT" etc.
@@ -291,7 +322,10 @@ export default function Inventory() {
             if (it.status === 'out') outCount += 1;
             else if (it.status === 'low') lowCount += 1;
           }
-          const isCollapsed = collapsed.has(group.type);
+          // Default to collapsed when state hasn't initialised yet so the
+          // first paint matches the first-visit-collapsed UX (no flash of
+          // expanded content).
+          const isCollapsed = collapsed instanceof Set ? collapsed.has(group.type) : true;
           return (
             <section key={group.type} className="space-y-2">
               <button

@@ -89,7 +89,7 @@ function AppShell() {
   );
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col overflow-x-hidden">
       {isDemoMode && (
         <div className="bg-amber-500/15 text-amber-200 text-[11px] font-medium text-center py-1 px-3 border-b border-amber-500/30">
           Demo mode — all data is fake and changes don&rsquo;t persist.
@@ -130,7 +130,7 @@ function AppShell() {
         </div>
       </main>
 
-      <nav className="fixed inset-x-0 bottom-0 border-t border-slate-800/80 bg-slate-900/85 backdrop-blur">
+      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-800/80 bg-slate-900/95 backdrop-blur">
         <ul className="mx-auto grid max-w-app grid-cols-4">
           {tabs.map((t) => (
             <li key={t.to} className="relative">
