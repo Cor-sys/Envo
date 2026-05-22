@@ -70,7 +70,7 @@ export default function Labels() {
                     type="checkbox"
                     checked={selected.has(it.id)}
                     onChange={() => toggle(it.id)}
-                    className="accent-sky-500"
+                    className="accent-honey-500"
                   />
                   <span className="font-medium text-slate-100 truncate">{it.name}</span>
                   <span className="ml-auto text-xs text-slate-400 font-mono">

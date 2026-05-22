@@ -96,25 +96,25 @@ function AppShell() {
         </div>
       )}
       <header className="border-b border-slate-800/80 bg-slate-900/70 backdrop-blur">
-        <div className="mx-auto max-w-app w-full px-4 py-3 flex items-center justify-between">
-          <h1 className="wordmark">
+        <div className="mx-auto max-w-app w-full px-3 sm:px-4 py-2.5 flex items-center justify-between gap-2">
+          <h1 className="wordmark shrink-0">
             <span className="wordmark-dot" />
             stockroom
           </h1>
-          <div className="flex items-center gap-3 text-sm text-slate-400">
+          <div className="flex items-center gap-2 sm:gap-3 text-sm text-slate-400 min-w-0">
             <PendingBadge />
             {admin && (
               <Link
                 to="/admin"
-                className="text-honey-500 hover:text-honey-400 transition-colors text-xs uppercase tracking-wide font-medium"
+                className="text-honey-500 hover:text-honey-300 transition-colors text-xs uppercase tracking-wide font-medium shrink-0"
               >
                 Admin
               </Link>
             )}
-            <span className="hidden sm:inline truncate max-w-[12rem]">{me}</span>
+            <span className="hidden sm:inline truncate max-w-[10rem] text-slate-500">{me}</span>
             <button
               onClick={() => signOut()}
-              className="text-slate-500 hover:text-slate-200 transition-colors"
+              className="text-xs sm:text-sm text-slate-500 hover:text-slate-200 transition-colors shrink-0"
             >
               Sign out
             </button>

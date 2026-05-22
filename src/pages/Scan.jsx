@@ -198,14 +198,16 @@ export default function Scan() {
 
   return (
     <div className="p-3 space-y-3">
-      {/* direction toggle */}
+      {/* Direction toggle. Matched to the bottom +/− buttons: brass for IN,
+          red for OUT — so the action you pick up top reads the same as the
+          button you'll tap below. Matte, no gradient. */}
       <div className="grid grid-cols-2 gap-1 rounded-xl bg-slate-800 p-1">
         <button
           type="button"
           onClick={() => setDirection('in')}
-          className={`rounded-lg py-2 text-sm font-medium transition-all ${
+          className={`rounded-lg py-2 text-sm font-medium transition-colors ${
             inDir
-              ? 'bg-gradient-to-b from-honey-500 to-honey-600 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.18)]'
+              ? 'bg-honey-500 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.15)]'
               : 'text-slate-400 hover:text-slate-200'
           }`}
         >
@@ -215,7 +217,9 @@ export default function Scan() {
           type="button"
           onClick={() => setDirection('out')}
           className={`rounded-lg py-2 text-sm font-medium transition-colors ${
-            !inDir ? 'bg-red-500 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+            !inDir
+              ? 'bg-red-700 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.10)]'
+              : 'text-slate-400 hover:text-slate-200'
           }`}
         >
           Check OUT

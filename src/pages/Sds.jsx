@@ -104,7 +104,7 @@ export default function Sds() {
           onChange={(e) => setSearch(e.target.value)}
         />
 
-        <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-3 px-3">
+        <div className="chip-row">
           {FILTERS.map((f) => {
             const active = filter === f.value;
             const count = counts?.[f.value];
@@ -113,15 +113,11 @@ export default function Sds() {
                 key={f.value}
                 type="button"
                 onClick={() => setFilter(f.value)}
-                className={`shrink-0 rounded-full px-3 py-1 text-xs transition-colors ${
-                  active
-                    ? 'bg-honey-600 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.15)]'
-                    : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                }`}
+                className={active ? 'chip-active' : 'chip-inactive'}
               >
                 {f.label}
                 {typeof count === 'number' && (
-                  <span className={`ml-1.5 tabular-nums ${active ? 'opacity-90' : 'opacity-60'}`}>
+                  <span className={active ? 'opacity-90' : 'opacity-60'}>
                     {count}
                   </span>
                 )}
@@ -241,7 +237,7 @@ function SdsEditor({ item, onClose, onSaved }) {
 
   return (
     <div
-      className="fixed inset-0 z-30 bg-slate-950/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-3"
+      className="fixed inset-0 z-40 bg-slate-950/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-3"
       onClick={onClose}
     >
       <div
@@ -328,7 +324,7 @@ function SdsEditor({ item, onClose, onSaved }) {
               type="button"
               disabled={busy}
               onClick={onClear}
-              className="text-xs text-red-300 hover:text-red-300"
+              className="text-xs text-red-300 hover:text-red-200 transition-colors disabled:opacity-50"
             >
               Remove SDS from this item
             </button>
@@ -336,7 +332,7 @@ function SdsEditor({ item, onClose, onSaved }) {
         )}
 
         <div className="border-t border-slate-800 pt-3 text-xs text-slate-400">
-          See full item page: <Link to={`/items/${item.id}`} className="text-honey-400 hover:text-honey-400">{item.sku}</Link>
+          See full item page: <Link to={`/items/${item.id}`} className="text-honey-400 hover:text-honey-300 transition-colors">{item.sku}</Link>
         </div>
 
         {error && <p className="text-red-300 text-sm">{error}</p>}

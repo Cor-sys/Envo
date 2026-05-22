@@ -178,20 +178,16 @@ export default function ItemDetail() {
           </div>
         </div>
 
-        <div className="space-y-2 pt-1 border-t border-slate-800">
-          <div className="text-xs uppercase text-slate-500 tracking-wide pt-2">Adjust by</div>
+        <div className="space-y-2 pt-3 border-t border-slate-800">
+          <div className="eyebrow">Adjust by</div>
           <div className="flex items-center gap-2">
-            <div className="flex gap-1">
+            <div className="flex flex-wrap gap-1.5">
               {QTY_PRESETS.map((n) => (
                 <button
                   key={n}
                   type="button"
                   onClick={() => setAdjustQty(n)}
-                  className={`shrink-0 rounded-lg px-2.5 py-1 text-sm tabular-nums transition-colors ${
-                    Number(adjustQty) === n
-                      ? 'bg-honey-600 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.18)]'
-                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                  }`}
+                  className={Number(adjustQty) === n ? 'chip-active' : 'chip-inactive'}
                 >
                   {n}
                 </button>
@@ -202,11 +198,12 @@ export default function ItemDetail() {
               min="1"
               value={adjustQty}
               onChange={(e) => setAdjustQty(e.target.value)}
-              className="w-20 rounded-lg border border-slate-700 bg-slate-900 px-2 py-1 text-sm tabular-nums"
+              className="w-16 rounded-lg border border-slate-700 bg-slate-900 px-2 py-1.5 text-sm tabular-nums text-center"
+              aria-label="Adjustment quantity"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-2 pt-1">
             <button
               disabled={outDisabled}
               onClick={() => adjust('out')}
@@ -254,7 +251,7 @@ export default function ItemDetail() {
                   href={md.purchase_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-honey-400 hover:text-honey-400 underline-offset-2 hover:underline truncate inline-block max-w-full align-bottom"
+                  className="text-honey-400 hover:text-honey-300 underline-offset-2 hover:underline transition-colors truncate inline-block max-w-full align-bottom"
                 >
                   {md.purchase_url}
                 </a>
