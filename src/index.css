@@ -17,12 +17,25 @@
  * we're on a dark cool canvas.
  * --------------------------------------------------------------------------- */
 @layer base {
-  html, body, #root { height: 100%; }
+  /* Body-scroll architecture (NOT a nested scroll container).
+     Why: with overflow-y on <main>, iOS Safari renders the scrollbar inside
+     <main>'s box, where transforms (SwipeRoutes) and rounded ancestors
+     visually clip the scrollbar between cards. Letting the document body
+     scroll puts the scrollbar at the viewport edge as a single continuous
+     track. The sticky <header> and fixed <nav> stay visible during scroll. */
+  html { height: 100%; }
+  body { min-height: 100%; }
+  #root { min-height: 100vh; }
+  /* Header height as a CSS custom property so sticky group headers inside
+     pages can offset themselves by the exact header bar. Update here if the
+     header padding/typography changes. */
+  :root { --header-h: 2.875rem; }
   body {
     @apply bg-slate-950 text-slate-100 antialiased;
     font-feature-settings: 'cv11', 'ss01', 'ss03';
     /* Subtle warm brass glow in the top-right + deeper slate shadow in the
-       bottom-left so the canvas doesn't read as a flat field. */
+       bottom-left so the canvas doesn't read as a flat field. Fixed
+       attachment means it stays put while content scrolls. */
     background-image:
       radial-gradient(at 100% 0%, rgba(184, 133, 50, 0.08) 0%, transparent 60%),
       radial-gradient(at 0% 100%, rgba(16, 24, 38, 0.45) 0%, transparent 55%);

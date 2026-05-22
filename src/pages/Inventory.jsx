@@ -328,7 +328,8 @@ export default function Inventory() {
                 type="button"
                 onClick={() => toggleGroup(group.type)}
                 aria-expanded={!isCollapsed}
-                className="sticky top-0 z-10 -mx-3 px-3 py-2 bg-slate-950/90 backdrop-blur border-b border-slate-800/70 flex items-center justify-between w-[calc(100%+1.5rem)] text-left hover:bg-slate-900/40 transition-colors"
+                style={{ top: 'var(--header-h)' }}
+                className="sticky z-10 -mx-3 px-3 py-2 bg-slate-950/90 backdrop-blur border-b border-slate-800/70 flex items-center justify-between w-[calc(100%+1.5rem)] text-left hover:bg-slate-900/40 transition-colors"
               >
                 <div className="flex items-center gap-2 min-w-0">
                   <ChevronRight

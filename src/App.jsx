@@ -88,14 +88,19 @@ function AppShell() {
     </Routes>
   );
 
+  // Body-scroll layout. The document itself scrolls — not <main> — so iOS
+  // Safari paints a single continuous scrollbar at the viewport edge instead
+  // of one segmented by SwipeRoutes' transform and the rounded card edges.
+  // The header is sticky (was previously in a flex column above the scroll
+  // container, so visibility came for free); the nav stays fixed.
   return (
-    <div className="flex h-full flex-col overflow-x-hidden">
+    <div className="min-h-screen overflow-x-hidden">
       {isDemoMode && (
         <div className="bg-amber-500/15 text-amber-200 text-[11px] font-medium text-center py-1 px-3 border-b border-amber-500/30">
           Demo mode — all data is fake and changes don&rsquo;t persist.
         </div>
       )}
-      <header className="border-b border-slate-800/80 bg-slate-900/70 backdrop-blur">
+      <header className="sticky top-0 z-30 border-b border-slate-800/80 bg-slate-900/85 backdrop-blur">
         <div className="mx-auto max-w-app w-full px-3 sm:px-4 py-2.5 flex items-center justify-between gap-2">
           <h1 className="wordmark shrink-0">
             <span className="wordmark-dot" />
@@ -122,7 +127,7 @@ function AppShell() {
         </div>
       </header>
 
-      <main className="flex-1 overflow-y-auto pb-20">
+      <main className="pb-24">
         <div className="mx-auto max-w-app w-full">
           {isTabRoute ? (
             <SwipeRoutes tabOrder={tabOrder}>{routes}</SwipeRoutes>
