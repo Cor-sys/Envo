@@ -1,15 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  cacheSdsFromUrl,
   isSdsCheckProblem,
   listSdsItems,
   sdsCheckStatus,
   sdsStatus,
   sdsViewUrl,
   uploadSdsPdf,
-  setSdsUrl,
-  clearSds,
 } from '../lib/sds.js';
 import { AlertTriangle, CheckCircle2, X } from 'lucide-react';
 import SdsStatusBadge from '../components/SdsStatusBadge.jsx';
@@ -196,12 +193,16 @@ export default function Sds() {
   );
 }
 
-// Bottom sheet for managing a single item's SDS. Three actions:
-//   - Upload a PDF (or replace the existing one)
-//   - Paste a manufacturer URL
-//   - Clear what's on file
+// Bottom sheet for managing a single item's SDS. Now that every item has
+// a verified PDF on file, the editor only exposes the two actions staff
+// actually need:
+//   - Open PDF   — view the cached SDS in a new tab
+//   - Update PDF — replace it with a fresh copy from the manufacturer
+// Removed: paste-URL flow (no items left without a PDF), explicit "Save
+// locally" cache trigger (auto-cache runs on every upload), and the
+// destructive "Remove SDS" link (rare action; do it from the item edit
+// page if truly needed).
 function SdsEditor({ item, onClose, onSaved }) {
-  const [url, setUrl] = useState(item.metadata?.sds_url ?? '');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const status = sdsStatus(item);
@@ -217,52 +218,6 @@ function SdsEditor({ item, onClose, onSaved }) {
       await onSaved();
     } catch (err) {
       setError(err.message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function saveUrl() {
-    if (!url.trim()) return;
-    setBusy(true);
-    setError(null);
-    try {
-      await setSdsUrl(item.id, url, item.metadata ?? {});
-      await onSaved();
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function onClear() {
-    if (!confirm('Remove the SDS from this item?')) return;
-    setBusy(true);
-    setError(null);
-    try {
-      await clearSds(item.id, item.metadata ?? {});
-      await onSaved();
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  // Manual cache trigger for linked-but-not-yet-cached items. setSdsUrl
-  // already auto-attempts this on first save; this button is for the
-  // 13 items that got their sds_url from the import migration before the
-  // auto-cache existed, plus a retry path when the auto-attempt failed.
-  async function onCache() {
-    if (!item.metadata?.sds_url) return;
-    setBusy(true);
-    setError(null);
-    try {
-      await cacheSdsFromUrl(item.id, item.metadata.sds_url);
-      await onSaved();
-    } catch (err) {
-      setError(`Couldn't cache: ${err.message}`);
     } finally {
       setBusy(false);
     }
@@ -303,99 +258,33 @@ function SdsEditor({ item, onClose, onSaved }) {
               </span>
             )}
           </div>
-          {item.metadata?.sds_check_at && (
-            <div className="text-[11px] text-slate-500">
-              Link checked {new Date(item.metadata.sds_check_at).toLocaleDateString()}
-              {item.metadata.sds_check_status && (
-                <>
-                  {' — '}
-                  <span className={
-                    isSdsCheckProblem(item.metadata.sds_check_status) ? 'text-amber-300'
-                    : item.metadata.sds_check_status === 'cas_match'  ? 'text-emerald-400'
-                    : 'text-slate-400'
-                  }>
-                    {item.metadata.sds_check_status.replace(/_/g, ' ')}
-                  </span>
-                </>
-              )}
-              {item.metadata.sds_check_http_status && item.metadata.sds_check_http_status !== 200 && (
-                <span className="text-slate-500"> · HTTP {item.metadata.sds_check_http_status}</span>
-              )}
-            </div>
-          )}
         </div>
 
-        {viewUrl && (
+        {viewUrl ? (
           <a
             href={viewUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="tap-secondary w-full"
           >
-            {status === 'uploaded' ? 'Open uploaded PDF' :
-             status === 'linked'   ? 'Open external SDS' :
-                                     'Search for SDS (Google)'}
+            Open PDF
           </a>
+        ) : (
+          <p className="text-xs text-slate-500 italic">
+            No PDF on file yet — upload one below.
+          </p>
         )}
 
-        {status === 'linked' && (
-          <button
-            type="button"
+        <label className="tap-primary w-full cursor-pointer">
+          {busy ? 'Working…' : (viewUrl ? 'Update PDF' : 'Upload PDF')}
+          <input
+            type="file"
+            accept="application/pdf"
+            className="hidden"
             disabled={busy}
-            onClick={onCache}
-            className="tap-primary w-full"
-          >
-            {busy ? 'Caching…' : 'Save PDF locally'}
-          </button>
-        )}
-
-        <div className="border-t border-slate-800 pt-3 space-y-2">
-          <div className="text-xs uppercase tracking-wide text-slate-500">Upload PDF</div>
-          <label className="tap-primary w-full cursor-pointer">
-            {busy ? 'Working…' : 'Choose PDF'}
-            <input
-              type="file"
-              accept="application/pdf"
-              className="hidden"
-              disabled={busy}
-              onChange={onFile}
-            />
-          </label>
-        </div>
-
-        <div className="border-t border-slate-800 pt-3 space-y-2">
-          <div className="text-xs uppercase tracking-wide text-slate-500">Or paste manufacturer URL</div>
-          <div className="flex gap-2">
-            <input
-              type="url"
-              className="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
-              placeholder="https://…"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-            />
-            <button
-              type="button"
-              disabled={busy || !url.trim()}
-              onClick={saveUrl}
-              className="tap-secondary"
-            >
-              Save
-            </button>
-          </div>
-        </div>
-
-        {(status === 'uploaded' || status === 'linked') && (
-          <div className="border-t border-slate-800 pt-3">
-            <button
-              type="button"
-              disabled={busy}
-              onClick={onClear}
-              className="text-xs text-red-300 hover:text-red-200 transition-colors disabled:opacity-50"
-            >
-              Remove SDS from this item
-            </button>
-          </div>
-        )}
+            onChange={onFile}
+          />
+        </label>
 
         <div className="border-t border-slate-800 pt-3 text-xs text-slate-400">
           See full item page: <Link to={`/items/${item.id}`} className="text-honey-400 hover:text-honey-300 transition-colors">{item.sku}</Link>
