@@ -29,13 +29,54 @@ function Thumb({ item, size = 'sm' }) {
   );
 }
 
+// Persisted collapsed-group state. With 11+ type groups after the chemical
+// import a single Inventory page is several hundred items long; remembering
+// which groups the user has hidden across reloads makes scrolling sane.
+const COLLAPSE_STORAGE_KEY = 'stockroom.inventory.collapsedGroups.v1';
+function loadCollapsed() {
+  if (typeof localStorage === 'undefined') return new Set();
+  try {
+    const raw = localStorage.getItem(COLLAPSE_STORAGE_KEY);
+    if (!raw) return new Set();
+    const arr = JSON.parse(raw);
+    return new Set(Array.isArray(arr) ? arr : []);
+  } catch {
+    return new Set();
+  }
+}
+function saveCollapsed(set) {
+  if (typeof localStorage === 'undefined') return;
+  try { localStorage.setItem(COLLAPSE_STORAGE_KEY, JSON.stringify([...set])); }
+  catch { /* quota or disabled — non-fatal */ }
+}
+
 export default function Inventory() {
   const [items, setItems] = useState(null);
   const [recentIds, setRecentIds] = useState([]);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [attentionOnly, setAttentionOnly] = useState(false);
+  const [collapsed, setCollapsed] = useState(loadCollapsed);
   const [error, setError] = useState(null);
+
+  function toggleGroup(key) {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      saveCollapsed(next);
+      return next;
+    });
+  }
+
+  function setAllCollapsed(toCollapse) {
+    setCollapsed(() => {
+      const next = toCollapse && groupedVisible
+        ? new Set(groupedVisible.map((g) => g.type))
+        : new Set();
+      saveCollapsed(next);
+      return next;
+    });
+  }
 
   const load = useCallback(async () => {
     setError(null);
@@ -131,6 +172,9 @@ export default function Inventory() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
+          <Link to="/labels" className="tap-secondary" title="Print labels for items without a factory barcode">
+            Labels
+          </Link>
           <Link to="/items/new" className="tap-primary">+ Item</Link>
         </div>
 
@@ -224,6 +268,18 @@ export default function Inventory() {
           </div>
         )}
 
+        {groupedVisible && groupedVisible.length > 1 && (
+          <div className="flex justify-end -my-1">
+            <button
+              type="button"
+              onClick={() => setAllCollapsed(collapsed.size < groupedVisible.length)}
+              className="text-[11px] text-slate-400 hover:text-slate-200 transition-colors"
+            >
+              {collapsed.size < groupedVisible.length ? 'Collapse all' : 'Expand all'}
+            </button>
+          </div>
+        )}
+
         {groupedVisible && groupedVisible.length > 0 && groupedVisible.map((group) => {
           // Per-group attention counts so the header can flag "2 OUT" etc.
           let outCount = 0, lowCount = 0;
@@ -231,10 +287,22 @@ export default function Inventory() {
             if (it.status === 'out') outCount += 1;
             else if (it.status === 'low') lowCount += 1;
           }
+          const isCollapsed = collapsed.has(group.type);
           return (
             <section key={group.type} className="space-y-2">
-              <div className="sticky top-0 z-10 -mx-3 px-3 py-1.5 bg-slate-950/85 backdrop-blur border-b border-slate-800/60 flex items-center justify-between">
-                <div className="flex items-baseline gap-2 min-w-0">
+              <button
+                type="button"
+                onClick={() => toggleGroup(group.type)}
+                aria-expanded={!isCollapsed}
+                className="sticky top-0 z-10 -mx-3 px-3 py-1.5 bg-slate-950/85 backdrop-blur border-b border-slate-800/60 flex items-center justify-between w-[calc(100%+1.5rem)] text-left hover:bg-slate-900/70 transition-colors"
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <span
+                    className={`text-slate-500 text-[10px] transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
+                    aria-hidden="true"
+                  >
+                    ▶
+                  </span>
                   <h3 className="text-xs uppercase tracking-wider font-semibold text-slate-200 truncate">
                     {group.label}
                   </h3>
@@ -256,7 +324,9 @@ export default function Inventory() {
                     )}
                   </div>
                 )}
-              </div>
+              </button>
+
+              {isCollapsed ? null : (
 
               <ul className="space-y-2">
                 {group.items.map((it) => {
@@ -294,6 +364,7 @@ export default function Inventory() {
                   );
                 })}
               </ul>
+              )}
             </section>
           );
         })}
