@@ -19,6 +19,7 @@ import StatusPill from '../components/StatusPill.jsx';
 import OrderButton from '../components/OrderButton.jsx';
 import EmptyState from '../components/EmptyState.jsx';
 import ErrorBanner from '../components/ErrorBanner.jsx';
+import BuildingPicker from '../components/BuildingPicker.jsx';
 
 function humanizeKey(k) {
   return k.replaceAll('_', ' ');
@@ -118,6 +119,7 @@ export default function ItemDetail() {
   const [loaded, setLoaded] = useState(false);
   const [adjustQty, setAdjustQty] = useState(1);
   const [flash, setFlash] = useState(null);
+  const [buildingId, setBuildingId] = useState('');
 
   async function reload() {
     setError(null);
@@ -175,6 +177,7 @@ export default function ItemDetail() {
         unitCostSnapshot: item.best_price ?? null,
         maxPriceSnapshot: item.max_price ?? null,
         vendorSnapshot:   item.best_vendor ?? null,
+        buildingId:       buildingId || null,
       });
       const queued = result?.queued === true;
       hapticSuccess();
@@ -308,6 +311,8 @@ export default function ItemDetail() {
               aria-label="Adjustment quantity"
             />
           </div>
+
+          <BuildingPicker value={buildingId} onChange={setBuildingId} />
 
           <div className="grid grid-cols-2 gap-2 pt-1">
             <button

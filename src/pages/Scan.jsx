@@ -10,6 +10,7 @@ import {
 import { success as hapticSuccess, error as hapticError, tap as hapticTap } from '../lib/haptics.js';
 import StatusPill from '../components/StatusPill.jsx';
 import ErrorBanner from '../components/ErrorBanner.jsx';
+import BuildingPicker from '../components/BuildingPicker.jsx';
 
 const BARCODE_FORMATS = [
   'qr_code',
@@ -32,6 +33,7 @@ export default function Scan() {
   const [manualCode, setManualCode] = useState('');
   const [busy, setBusy]             = useState(false);
   const [flash, setFlash]           = useState(null);    // { name, direction } shown for 1.5s
+  const [buildingId, setBuildingId] = useState('');      // optional destination tag
 
   // Camera + barcode detector lifecycle.
   // Path A: native BarcodeDetector (Chrome / Edge on Android + desktop).
@@ -162,6 +164,7 @@ export default function Scan() {
         unitCostSnapshot: item.best_price ?? null,
         maxPriceSnapshot: item.max_price ?? null,
         vendorSnapshot:   item.best_vendor ?? null,
+        buildingId:       buildingId || null,
       });
       const queued = result?.queued === true;
       hapticSuccess();
@@ -231,6 +234,8 @@ export default function Scan() {
           Check OUT
         </button>
       </div>
+
+      <BuildingPicker value={buildingId} onChange={setBuildingId} />
 
       {/* viewfinder */}
       <div className="relative aspect-square overflow-hidden rounded-2xl bg-black border border-slate-800">

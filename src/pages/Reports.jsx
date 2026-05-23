@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
+  downloadCsv,
   getInventorySnapshot,
   getRecentActivity,
   getSpendReport,
   rangeForPreset,
   REPORT_PRESETS,
+  reorderToCsv,
   summarize,
 } from '../lib/reports.js';
 import { getMyRecentItemIds, itemTypeLabel } from '../lib/items.js';
@@ -128,7 +130,19 @@ export default function Reports() {
 
   return (
     <div className="p-3 space-y-5 reports-page">
-      <div className="flex items-center justify-end">
+      <div className="flex items-center justify-end gap-2">
+        <button
+          type="button"
+          onClick={() => {
+            const date = new Date().toISOString().slice(0, 10);
+            downloadCsv(`reorder-${date}.csv`, reorderToCsv(items));
+          }}
+          disabled={!items || items.every((i) => i.status === 'ok')}
+          className="tap-secondary no-print"
+          title="Download reorder list as CSV (one row per non-OK item)"
+        >
+          Reorder CSV
+        </button>
         <button
           type="button"
           onClick={() => window.print()}
@@ -204,6 +218,31 @@ export default function Reports() {
               <div className="text-[11px] text-slate-500 mt-1">avg price change vs. last buy</div>
             </div>
           </div>
+
+          {spend.byBuilding && spend.byBuilding.length > 0 && (() => {
+            const maxSpent = Math.max(...spend.byBuilding.map((b) => b.spent));
+            return (
+              <div className="surface p-3 space-y-2 print:border-slate-300">
+                <div className="eyebrow print:text-slate-700">By building</div>
+                <ul className="space-y-1.5">
+                  {spend.byBuilding.map((b) => {
+                    const pct = maxSpent > 0 ? (b.spent / maxSpent) * 100 : 0;
+                    return (
+                      <li key={b.id} className="space-y-0.5">
+                        <div className="flex items-baseline justify-between text-xs">
+                          <span className="text-slate-300 truncate">{b.label}</span>
+                          <span className="tabular-nums text-slate-100">{formatMoney(b.spent)}</span>
+                        </div>
+                        <div className="h-1 rounded bg-slate-800 overflow-hidden">
+                          <div className="h-full bg-sage-500" style={{ width: `${pct}%` }} />
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            );
+          })()}
 
           {spend.byCategory.length > 0 && (() => {
             const maxSpent = Math.max(...spend.byCategory.map((c) => c.spent));
@@ -348,9 +387,17 @@ export default function Reports() {
       </section>
 
       <section className="space-y-2 report-section">
-        <h3 className="text-sm font-medium text-slate-300 print:text-slate-900">
-          Recent activity <span className="text-slate-500 print:text-slate-700">(last {activity.length})</span>
-        </h3>
+        <div className="flex items-baseline justify-between gap-2">
+          <h3 className="text-sm font-medium text-slate-300 print:text-slate-900">
+            Recent activity <span className="text-slate-500 print:text-slate-700">(last {activity.length})</span>
+          </h3>
+          <Link
+            to="/activity"
+            className="text-xs text-sage-300 hover:text-sage-200 transition-colors no-print"
+          >
+            View all →
+          </Link>
+        </div>
         {activity.length === 0 ? (
           <p className="text-sm text-slate-500 print:text-slate-700">No movements yet.</p>
         ) : (
@@ -373,6 +420,7 @@ export default function Reports() {
                   </div>
                   <div className="text-[11px] text-slate-500 print:text-slate-700 truncate">
                     {t.items?.sku} · {t.staff_label ?? 'unknown'}
+                    {t.building && <> · <span className="text-sage-300 print:text-sage-700">{t.building.number}. {t.building.name}</span></>}
                     {t.note ? ` · ${t.note}` : ''}
                   </div>
                 </div>
