@@ -246,7 +246,23 @@ export default function Scan() {
           className="h-full w-full object-cover"
         />
         {/* reticle */}
-        <div className="pointer-events-none absolute inset-6 rounded-xl border-2 border-white/80 shadow-[0_0_0_9999px_rgba(2,6,23,0.55)]" />
+        <div className="pointer-events-none absolute inset-6 rounded-xl border-2 border-white/80 shadow-[0_0_0_9999px_rgba(2,6,23,0.55)] overflow-hidden">
+          {scannerKind && !flash && <div className="scan-line" />}
+        </div>
+        {/* Active-scan indicator. Sits at the bottom of the viewfinder so it
+            doesn't fight the match-flash banner that takes the top edge. */}
+        {scannerKind && !flash && !permDenied && (
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 rounded-full bg-slate-950/85 px-2.5 py-1 text-[11px] font-medium text-honey-200 ring-1 ring-honey-400/30">
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-honey-400 animate-pulse" />
+            Scanning…
+          </div>
+        )}
+        {!scannerKind && !permDenied && !error && (
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 rounded-full bg-slate-950/85 px-2.5 py-1 text-[11px] font-medium text-slate-300 ring-1 ring-slate-700">
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-slate-400 animate-pulse" />
+            Starting camera…
+          </div>
+        )}
         {flash && (
           <div className={`absolute inset-x-0 top-0 text-white px-3 py-2 text-sm font-medium flex items-center justify-center gap-1.5 ${
             flash.queued ? 'bg-amber-600' : 'bg-emerald-600'
@@ -297,8 +313,9 @@ export default function Scan() {
           </div>
         </div>
       ) : (
-        <div className="rounded-2xl border border-dashed border-slate-700 p-4 text-center text-sm text-slate-400">
-          Point the camera at a UPC barcode or one of our QR labels.
+        <div className="rounded-2xl border border-dashed border-slate-700 p-4 text-center text-sm text-slate-400 space-y-1">
+          <div>Point the camera at a UPC barcode or one of our QR labels.</div>
+          <div className="text-xs text-slate-500">Hold ~4–8&nbsp;inches away and keep steady — focus catches automatically.</div>
         </div>
       )}
 
