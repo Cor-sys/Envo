@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { createInvite, useStaffProfile } from '../lib/auth.jsx';
+import { createInvite, listStaff, setStaffRole, useStaffProfile } from '../lib/auth.jsx';
 import { supabase } from '../lib/supabase.js';
 import EmptyState from '../components/EmptyState.jsx';
 import ErrorBanner from '../components/ErrorBanner.jsx';
@@ -15,26 +15,51 @@ import { formatAbsolute, formatRelative } from '../lib/format.js';
 export default function Admin() {
   const { profile, loading: profileLoading } = useStaffProfile();
   const [invites, setInvites] = useState(null);
+  const [staff, setStaff] = useState(null);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [roleBusy, setRoleBusy] = useState(null);     // userId currently being toggled
   const [note, setNote] = useState('');
   const [copied, setCopied] = useState(null);
 
   const load = useCallback(async () => {
     setError(null);
     try {
-      const { data, error } = await supabase
-        .from('invites')
-        .select('id, code, note, used_by, used_at, expires_at, created_at')
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      setInvites(data ?? []);
+      const [inv, st] = await Promise.all([
+        supabase
+          .from('invites')
+          .select('id, code, note, used_by, used_at, expires_at, created_at')
+          .order('created_at', { ascending: false }),
+        listStaff().catch(() => []),
+      ]);
+      if (inv.error) throw inv.error;
+      setInvites(inv.data ?? []);
+      setStaff(st);
     } catch (e) {
       setError(e.message);
     }
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  async function toggleRole(user) {
+    const next = user.role === 'admin' ? 'staff' : 'admin';
+    const verb = next === 'admin' ? 'promote' : 'demote';
+    if (!confirm(`${verb === 'promote' ? 'Promote' : 'Demote'} ${user.username || user.full_name || 'this user'} to ${next}?`)) return;
+    setError(null);
+    setRoleBusy(user.id);
+    // Optimistic update so the toggle feels instant.
+    const prev = staff;
+    setStaff((cur) => cur?.map((u) => u.id === user.id ? { ...u, role: next } : u) ?? null);
+    try {
+      await setStaffRole(user.id, next);
+    } catch (e) {
+      setStaff(prev);
+      setError(e.message);
+    } finally {
+      setRoleBusy(null);
+    }
+  }
 
   async function generate() {
     setBusy(true);
@@ -135,6 +160,52 @@ export default function Admin() {
       </section>
 
       <ErrorBanner message={error} onDismiss={() => setError(null)} />
+
+      <section className="space-y-2">
+        <h3 className="text-sm font-medium text-slate-200">
+          Staff <span className="text-slate-500 tabular-nums">{staff?.length ?? ''}</span>
+        </h3>
+        {!staff && <SkeletonList rows={2} />}
+        {staff && staff.length === 0 && (
+          <EmptyState
+            variant="inline"
+            title="No staff yet."
+            description="Generate an invite above to add the first user."
+          />
+        )}
+        <ul className="space-y-2">
+          {staff?.map((u) => {
+            const isSelf = u.id === profile?.id;
+            const isAdmin = u.role === 'admin';
+            return (
+              <li key={u.id} className="surface p-3 flex items-center gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-medium text-slate-100 truncate">{u.full_name || u.username || '—'}</span>
+                    <span className={isAdmin ? 'pill-ok' : 'pill-muted'}>{u.role}</span>
+                    {isSelf && (
+                      <span className="text-[10.5px] font-semibold uppercase tracking-wider text-slate-500">you</span>
+                    )}
+                  </div>
+                  {u.username && u.username !== u.full_name && (
+                    <div className="text-xs text-slate-500 font-mono mt-0.5">{u.username}</div>
+                  )}
+                </div>
+                {!isSelf && (
+                  <button
+                    type="button"
+                    onClick={() => toggleRole(u)}
+                    disabled={roleBusy === u.id}
+                    className="tap-sm-secondary shrink-0"
+                  >
+                    {roleBusy === u.id ? '…' : isAdmin ? 'Demote to staff' : 'Make admin'}
+                  </button>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </section>
 
       <section className="space-y-2">
         <h3 className="text-sm font-medium text-slate-200">All invites</h3>

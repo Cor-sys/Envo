@@ -128,6 +128,23 @@ let items = [
   },
 ];
 
+// Tiny buildings seed so the Map tab + the new BuildingPicker on Scan
+// and ItemDetail have something to show in demo mode. Real schemas
+// carry 18 buildings; the demo's three are enough to exercise the UI.
+let buildings = [
+  { id: 'demo-bldg-1', number: 1, name: 'Ron E. Lewis Building',
+    notes: null, map_x: 48, map_y: 65,
+    created_at: '2026-04-01T09:00:00Z', updated_at: '2026-04-01T09:00:00Z' },
+  { id: 'demo-bldg-2', number: 5, name: 'Stark Nursing Building',
+    notes: null, map_x: 78, map_y: 79,
+    created_at: '2026-04-01T09:00:00Z', updated_at: '2026-04-01T09:00:00Z' },
+  { id: 'demo-bldg-3', number: 9, name: 'Wilson Building',
+    notes: null, map_x: 24, map_y: 23,
+    created_at: '2026-04-01T09:00:00Z', updated_at: '2026-04-01T09:00:00Z' },
+];
+
+let buildingItems = []; // demo doesn't seed any item↔building links
+
 // In-memory item_prices seed so the demo shows the new Pricing block on
 // item detail + the Best-price hint in the OrderButton title.
 let itemPrices = [
@@ -170,10 +187,12 @@ let transactions = [
   { id: 'demo-txn-5', item_id: 'demo-002', direction: 'out', qty: 4,
     staff_id: fakeUser.id, staff_label: 'Demo User', note: 'Stark Nursing fixtures',
     unit_cost_snapshot: 5.40, max_price_snapshot: 6.97, vendor_snapshot: 'Grainger',
+    building_id: 'demo-bldg-2',
     occurred_at: _lastWeek.toISOString() },
   { id: 'demo-txn-6', item_id: 'demo-002', direction: 'out', qty: 6,
     staff_id: fakeUser.id, staff_label: 'Demo User', note: 'Wilson Building',
     unit_cost_snapshot: 5.40, max_price_snapshot: 6.97, vendor_snapshot: 'Grainger',
+    building_id: 'demo-bldg-3',
     occurred_at: _twoDaysAgo.toISOString() },
 ];
 
@@ -215,6 +234,12 @@ function tableRows(table) {
   if (table === 'items_with_best_price')  return items.filter(i => !i.deleted_at).map(withStatus).map(withBestPrice);
   if (table === 'items')                  return items.filter(i => !i.deleted_at);
   if (table === 'item_prices')            return [...itemPrices];
+  if (table === 'buildings')              return buildings.map((b) => ({ ...b, building_items: [{ count: buildingItems.filter((bi) => bi.building_id === b.id).length }] }));
+  if (table === 'building_items')         return [...buildingItems];
+  if (table === 'staff_profiles')         return [{
+    id: fakeUser.id, username: 'demo', full_name: 'Demo User', role: 'admin', is_active: true,
+    created_at: '2026-04-01T09:00:00Z',
+  }];
   return [];
 }
 
@@ -429,6 +454,10 @@ export const demoClient = {
       // subsequent signInWithPassword auto-accepts.
       return { data: fakeUser.email, error: null };
     }
+    if (fn === 'set_staff_role') {
+      // Demo has one user (the admin). No-op the toggle.
+      return { data: null, error: null };
+    }
     if (fn !== 'record_movement') {
       return { data: null, error: new Error('demo: unknown rpc ' + fn) };
     }
@@ -451,6 +480,7 @@ export const demoClient = {
       unit_cost_snapshot: args.p_unit_cost_snapshot ?? null,
       max_price_snapshot: args.p_max_price_snapshot ?? null,
       vendor_snapshot:    args.p_vendor_snapshot ?? null,
+      building_id:        args.p_building_id ?? null,
       occurred_at: new Date().toISOString(),
     };
     transactions = [txn, ...transactions];

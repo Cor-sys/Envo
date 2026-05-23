@@ -15,6 +15,7 @@ import Scan from './pages/Scan.jsx';
 import Reports from './pages/Reports.jsx';
 import Sds from './pages/Sds.jsx';
 import MapPage from './pages/Map.jsx';
+import Activity from './pages/Activity.jsx';
 import RedeemInvite from './pages/RedeemInvite.jsx';
 import Admin from './pages/Admin.jsx';
 
@@ -54,6 +55,7 @@ function getPageTitle(pathname) {
   if (pathname === '/map')       return 'Map';
   if (pathname === '/admin')     return 'Admin';
   if (pathname === '/labels')    return 'Labels';
+  if (pathname === '/activity')  return 'Activity';
   if (pathname === '/items/new') return 'New item';
   if (pathname.startsWith('/items/') && pathname.endsWith('/edit')) return 'Edit item';
   if (pathname.startsWith('/items/')) return 'Item';
@@ -127,6 +129,7 @@ function AppShell() {
             <Route path="/items/:id/edit"   element={<EditItem />} />
             <Route path="/scan"        element={<Scan />} />
             <Route path="/labels"      element={<Labels />} />
+            <Route path="/activity"    element={<Activity />} />
             <Route path="/sds"         element={<Sds />} />
             <Route path="/reports"     element={<Reports />} />
             <Route path="/map"         element={<MapPage />} />

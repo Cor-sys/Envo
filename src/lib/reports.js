@@ -9,8 +9,8 @@ import { supabase } from './supabase.js';
 
 export async function getInventorySnapshot() {
   const { data, error } = await supabase
-    .from('items_with_status')
-    .select('id, sku, item_type, category, name, brand, model, qty, threshold, status, location_text, barcode, image_path, metadata')
+    .from('items_with_best_price')
+    .select('id, sku, item_type, category, name, brand, model, qty, threshold, status, location_text, barcode, image_path, metadata, best_price, best_vendor, best_url, max_price, quote_count')
     .order('item_type')
     .order('name');
   if (error) throw error;
@@ -35,6 +35,9 @@ export function deriveReorderList(items) {
       threshold: i.threshold,
       location_text: i.location_text,
       metadata: i.metadata,
+      best_price: i.best_price ?? null,
+      best_vendor: i.best_vendor ?? null,
+      best_url: i.best_url ?? null,
       suggested_qty: Math.max(i.threshold - i.qty, 1),
       status: i.status, // 'out' or 'low'
     }))
@@ -49,22 +52,91 @@ export function deriveReorderList(items) {
     });
 }
 
+// Full activity history with optional date-range + free-text search.
+// Used by the /activity page. Search matches item name / sku / staff
+// label / note. Date range follows the same half-open [from, to)
+// semantics as getSpendReport.
+//
+// Returns the rows already joined to their item (so the page can render
+// name + sku without a second round-trip). Cap at 500 to keep the page
+// responsive — a real-world stockroom won't hit that in a typical
+// filter window.
+export async function getActivity({ from = null, to = null, search = '', limit = 500 } = {}) {
+  const fromIso = from instanceof Date ? from.toISOString() : from;
+  const toIso   = to   instanceof Date ? to.toISOString()   : to;
+
+  let q = supabase
+    .from('transactions')
+    .select('id, item_id, direction, qty, staff_label, note, occurred_at, unit_cost_snapshot, vendor_snapshot, building_id')
+    .order('occurred_at', { ascending: false })
+    .limit(limit);
+  if (fromIso) q = q.gte('occurred_at', fromIso);
+  if (toIso)   q = q.lt('occurred_at',  toIso);
+  const txnRes = await q;
+  if (txnRes.error) throw txnRes.error;
+  const txns = txnRes.data ?? [];
+
+  const itemIds     = [...new Set(txns.map((t) => t.item_id).filter(Boolean))];
+  const buildingIds = [...new Set(txns.map((t) => t.building_id).filter(Boolean))];
+
+  const itemsById     = new Map();
+  const buildingsById = new Map();
+
+  await Promise.all([
+    itemIds.length > 0 ? supabase
+      .from('items')
+      .select('id, sku, name, brand')
+      .in('id', itemIds)
+      .then((res) => { for (const it of res.data ?? []) itemsById.set(it.id, it); })
+      : Promise.resolve(),
+    buildingIds.length > 0 ? supabase
+      .from('buildings')
+      .select('id, number, name')
+      .in('id', buildingIds)
+      .then((res) => { for (const b of res.data ?? []) buildingsById.set(b.id, b); })
+      : Promise.resolve(),
+  ]);
+
+  const enriched = txns.map((t) => ({
+    ...t,
+    items: itemsById.get(t.item_id) ?? null,
+    building: t.building_id ? buildingsById.get(t.building_id) ?? null : null,
+  }));
+
+  const s = (search ?? '').trim().toLowerCase();
+  if (!s) return enriched;
+  return enriched.filter((t) =>
+    (t.items?.name ?? '').toLowerCase().includes(s) ||
+    (t.items?.sku ?? '').toLowerCase().includes(s) ||
+    (t.staff_label ?? '').toLowerCase().includes(s) ||
+    (t.note ?? '').toLowerCase().includes(s) ||
+    (t.vendor_snapshot ?? '').toLowerCase().includes(s) ||
+    (t.building?.name ?? '').toLowerCase().includes(s),
+  );
+}
+
 export async function getRecentActivity(limit = 25) {
-  // Two parallel queries + a client-side join. We avoid PostgREST's embedding
-  // syntax so the demo client (and any future read replica without FK metadata)
-  // returns identical shapes. Item set is small for a small stockroom.
-  const [txnRes, itemRes] = await Promise.all([
+  // Three parallel queries + a client-side join. We avoid PostgREST's
+  // embedding syntax so the demo client (and any future read replica
+  // without FK metadata) returns identical shapes.
+  const [txnRes, itemRes, buildingRes] = await Promise.all([
     supabase
       .from('transactions')
-      .select('id, direction, qty, staff_label, note, occurred_at, item_id')
+      .select('id, direction, qty, staff_label, note, occurred_at, item_id, building_id')
       .order('occurred_at', { ascending: false })
       .limit(limit),
     supabase.from('items').select('id, name, sku'),
+    supabase.from('buildings').select('id, number, name').then((r) => r).catch(() => ({ data: [], error: null })),
   ]);
   if (txnRes.error) throw txnRes.error;
   if (itemRes.error) throw itemRes.error;
-  const byId = new Map((itemRes.data ?? []).map((i) => [i.id, i]));
-  return (txnRes.data ?? []).map((t) => ({ ...t, items: byId.get(t.item_id) ?? null }));
+  const byId  = new Map((itemRes.data ?? []).map((i) => [i.id, i]));
+  const bById = new Map((buildingRes.data ?? []).map((b) => [b.id, b]));
+  return (txnRes.data ?? []).map((t) => ({
+    ...t,
+    items: byId.get(t.item_id) ?? null,
+    building: t.building_id ? bById.get(t.building_id) ?? null : null,
+  }));
 }
 
 // Period spend / savings rollup. Driven by the snapshot columns on
@@ -93,7 +165,7 @@ export async function getSpendReport({ from, to } = {}) {
   //    stays in one place.
   let q = supabase
     .from('transactions')
-    .select('id, item_id, direction, qty, occurred_at, unit_cost_snapshot, max_price_snapshot, vendor_snapshot');
+    .select('id, item_id, direction, qty, occurred_at, unit_cost_snapshot, max_price_snapshot, vendor_snapshot, building_id');
   if (fromIso) q = q.gte('occurred_at', fromIso);
   if (toIso)   q = q.lt('occurred_at',  toIso);
   const txnRes = await q;
@@ -147,12 +219,26 @@ export async function getSpendReport({ from, to } = {}) {
     }
   }
 
-  // 4. Spend + savings + per-category + per-vendor rollup.
+  // 4. Buildings referenced by these transactions — needed for the
+  //    by-building rollup label. Same defensive batched lookup.
+  const buildingIds = [...new Set(txns.map((t) => t.building_id).filter(Boolean))];
+  let buildingsById = new Map();
+  if (buildingIds.length > 0) {
+    const bRes = await supabase
+      .from('buildings')
+      .select('id, number, name')
+      .in('id', buildingIds);
+    if (bRes.error) throw bRes.error;
+    buildingsById = new Map((bRes.data ?? []).map((b) => [b.id, b]));
+  }
+
+  // 5. Spend + savings + per-category + per-vendor + per-building rollup.
   let spent = 0;
   let saved = 0;
   let missingPricingCount = 0;
   const byCategory = new Map();
   const byVendor   = new Map();
+  const byBuilding = new Map();
 
   for (const t of txns) {
     const cost = t.unit_cost_snapshot == null ? null : Number(t.unit_cost_snapshot);
@@ -188,6 +274,15 @@ export async function getSpendReport({ from, to } = {}) {
       vSlot.spent += qty * cost;
       byVendor.set(v, vSlot);
     }
+
+    if (t.direction === 'out' && t.building_id) {
+      const b = buildingsById.get(t.building_id);
+      const label = b ? `${b.number}. ${b.name}` : 'Unknown building';
+      const bSlot = byBuilding.get(t.building_id) ?? { id: t.building_id, label, count: 0, spent: 0 };
+      bSlot.count += 1;
+      bSlot.spent += qty * cost;
+      byBuilding.set(t.building_id, bSlot);
+    }
   }
 
   spent = Math.max(spent, 0);
@@ -202,6 +297,7 @@ export async function getSpendReport({ from, to } = {}) {
       .filter((c) => c.spent > 0 || c.saved > 0)
       .sort((a, b) => b.spent - a.spent),
     topVendors: [...byVendor.values()].sort((a, b) => b.spent - a.spent).slice(0, 5),
+    byBuilding: [...byBuilding.values()].sort((a, b) => b.spent - a.spent),
   };
 }
 
@@ -242,6 +338,47 @@ export function rangeForPreset(key, now = new Date()) {
     default:
       return { from: null, to: null };
   }
+}
+
+// CSV export of the reorder list. Given a list of items from the
+// inventory snapshot, emits a paste-into-PO-grade CSV string with one
+// row per non-OK item. Includes best-price columns when the new
+// item_prices data is present.
+export function reorderToCsv(items) {
+  const reorder = deriveReorderList(items);
+  const headers = [
+    'SKU', 'Name', 'Brand', 'Model', 'Type', 'Category', 'Location',
+    'On Hand', 'Threshold', 'Suggested Qty', 'Status',
+    'Best Vendor', 'Best Price', 'Best URL',
+  ];
+  const esc = (v) => {
+    if (v == null) return '';
+    const s = String(v);
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const rows = reorder.map((i) => [
+    i.sku, i.name, i.brand, i.model, i.item_type, i.category, i.location_text,
+    i.qty, i.threshold, i.suggested_qty, i.status,
+    i.best_vendor ?? '',
+    i.best_price != null ? Number(i.best_price).toFixed(2) : '',
+    i.best_url ?? '',
+  ]);
+  return [headers, ...rows].map((r) => r.map(esc).join(',')).join('\n') + '\n';
+}
+
+// Trigger a browser download of the given CSV content. Lives here (not
+// in the page) so the page stays presentational and other reports can
+// reuse it later.
+export function downloadCsv(filename, csv) {
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
 export function summarize(items) {

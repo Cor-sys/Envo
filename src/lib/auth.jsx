@@ -129,6 +129,29 @@ export async function createInvite({ note = null, expires_at = null } = {}) {
   return data.invite;
 }
 
+// List every staff_profile row. Open to all authenticated under current
+// RLS but the UI gates display to admins only.
+export async function listStaff() {
+  const { data, error } = await supabase
+    .from('staff_profiles')
+    .select('id, username, full_name, role, is_active, created_at')
+    .order('role', { ascending: true })  // admins first
+    .order('username', { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
+// Promote / demote via the security-definer RPC from migration 209.
+// The RPC double-checks the caller is admin and refuses self-demotion.
+export async function setStaffRole(userId, role) {
+  const { data, error } = await supabase.rpc('set_staff_role', {
+    p_user_id: userId,
+    p_role: role,
+  });
+  if (error) throw error;
+  return data;
+}
+
 async function unpackError(err) {
   // supabase-js >=2 wraps Edge errors with a `.context.response` we can
   // unpack to recover the JSON body the function returned.

@@ -163,6 +163,7 @@ export async function updateItem(id, values) {
 export async function recordMovement({
   itemId, direction, qty, note = null,
   unitCostSnapshot = null, maxPriceSnapshot = null, vendorSnapshot = null,
+  buildingId = null,
 }) {
   const idempotencyKey = (typeof crypto !== 'undefined' && crypto.randomUUID)
     ? crypto.randomUUID()
@@ -170,7 +171,7 @@ export async function recordMovement({
 
   const enqueue = () => enqueueMovement({
     itemId, direction, qty, note, idempotencyKey,
-    unitCostSnapshot, maxPriceSnapshot, vendorSnapshot,
+    unitCostSnapshot, maxPriceSnapshot, vendorSnapshot, buildingId,
   });
 
   const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
@@ -189,6 +190,7 @@ export async function recordMovement({
       p_unit_cost_snapshot: unitCostSnapshot,
       p_max_price_snapshot: maxPriceSnapshot,
       p_vendor_snapshot:    vendorSnapshot,
+      p_building_id:        buildingId,
     });
     if (error) throw error;
     return data;

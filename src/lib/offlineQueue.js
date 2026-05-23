@@ -83,6 +83,7 @@ export async function getPending() {
 export async function enqueueMovement({
   itemId, direction, qty, note = null, idempotencyKey,
   unitCostSnapshot = null, maxPriceSnapshot = null, vendorSnapshot = null,
+  buildingId = null,
 }) {
   const entry = {
     idempotencyKey,
@@ -93,6 +94,7 @@ export async function enqueueMovement({
     unitCostSnapshot,
     maxPriceSnapshot,
     vendorSnapshot,
+    buildingId,
     enqueuedAt: new Date().toISOString(),
     attempts: 0,
     lastError: null,
@@ -143,6 +145,7 @@ export async function drainQueue(supabase) {
           p_unit_cost_snapshot: entry.unitCostSnapshot ?? null,
           p_max_price_snapshot: entry.maxPriceSnapshot ?? null,
           p_vendor_snapshot:    entry.vendorSnapshot   ?? null,
+          p_building_id:        entry.buildingId       ?? null,
         });
         if (error) throw error;
         await removeEntry(entry.id);

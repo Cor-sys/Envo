@@ -89,6 +89,39 @@ create trigger locations_set_updated_at before update on locations
   for each row execute function set_updated_at();
 
 -- ---------------------------------------------------------------------------
+-- buildings  (Map tab — numbered tap targets on the campus illustration)
+--    map_x / map_y are 0..100 percentages of image dimensions so an admin
+--    can drag-relocate without rebuilding the image.
+-- ---------------------------------------------------------------------------
+create table if not exists buildings (
+  id          uuid         primary key default gen_random_uuid(),
+  number      smallint     not null unique check (number > 0),
+  name        text         not null,
+  notes       text,
+  map_x       numeric(5,2) check (map_x is null or (map_x >= 0 and map_x <= 100)),
+  map_y       numeric(5,2) check (map_y is null or (map_y >= 0 and map_y <= 100)),
+  created_at  timestamptz  not null default now(),
+  updated_at  timestamptz  not null default now()
+);
+
+create index if not exists buildings_number_idx on buildings (number);
+
+drop trigger if exists buildings_set_updated_at on buildings;
+create trigger buildings_set_updated_at before update on buildings
+  for each row execute function set_updated_at();
+
+-- building_items: many-to-many between buildings and inventory items.
+create table if not exists building_items (
+  building_id uuid        not null references buildings(id) on delete cascade,
+  item_id     uuid        not null references items(id) on delete cascade,
+  usage_note  text,
+  created_at  timestamptz not null default now(),
+  primary key (building_id, item_id)
+);
+
+create index if not exists building_items_item_idx on building_items (item_id);
+
+-- ---------------------------------------------------------------------------
 -- tags  (flexible labels for filtering: "outdoor", "winter", "high-priority")
 -- ---------------------------------------------------------------------------
 create table if not exists tags (
@@ -260,6 +293,9 @@ create table if not exists transactions (
   unit_cost_snapshot  numeric(10,2),
   max_price_snapshot  numeric(10,2),
   vendor_snapshot     text,
+  -- Optional destination tag — answers "what did this job cost?" by
+  -- letting the Reports page roll up spend per building.
+  building_id         uuid          references buildings(id) on delete set null,
   occurred_at         timestamptz   not null default now()
 );
 
@@ -270,6 +306,8 @@ create unique index if not exists transactions_idempotency_key_uniq
   on transactions (idempotency_key) where idempotency_key is not null;
 create index if not exists transactions_cost_period_idx
   on transactions (occurred_at desc) where unit_cost_snapshot is not null;
+create index if not exists transactions_building_idx
+  on transactions (building_id, occurred_at desc) where building_id is not null;
 
 -- Enforce immutability: no UPDATE or DELETE on the activity log.
 create or replace function transactions_immutable() returns trigger
@@ -306,6 +344,7 @@ create trigger transactions_no_delete before delete on transactions
 -- ---------------------------------------------------------------------------
 drop function if exists record_movement(uuid, text, integer, text);
 drop function if exists record_movement(uuid, text, integer, text, uuid);
+drop function if exists record_movement(uuid, text, integer, text, uuid, numeric, numeric, text);
 
 create or replace function record_movement(
   p_item_id            uuid,
@@ -315,7 +354,8 @@ create or replace function record_movement(
   p_idempotency_key    uuid          default null,
   p_unit_cost_snapshot numeric(10,2) default null,
   p_max_price_snapshot numeric(10,2) default null,
-  p_vendor_snapshot    text          default null
+  p_vendor_snapshot    text          default null,
+  p_building_id        uuid          default null
 ) returns transactions
 language plpgsql security definer
 set search_path = public, pg_temp as $$
@@ -345,10 +385,10 @@ begin
   begin
     insert into transactions
       (item_id, direction, qty, staff_id, staff_label, note, idempotency_key,
-       unit_cost_snapshot, max_price_snapshot, vendor_snapshot)
+       unit_cost_snapshot, max_price_snapshot, vendor_snapshot, building_id)
     values
       (p_item_id, p_direction, p_qty, v_user_id, v_staff, p_note, p_idempotency_key,
-       p_unit_cost_snapshot, p_max_price_snapshot, p_vendor_snapshot)
+       p_unit_cost_snapshot, p_max_price_snapshot, p_vendor_snapshot, p_building_id)
     returning * into v_txn;
   exception when unique_violation then
     select * into v_txn
@@ -376,9 +416,58 @@ begin
 end;
 $$;
 
-revoke all     on function record_movement(uuid, text, integer, text, uuid, numeric, numeric, text) from public;
-revoke execute on function record_movement(uuid, text, integer, text, uuid, numeric, numeric, text) from anon;
-grant  execute on function record_movement(uuid, text, integer, text, uuid, numeric, numeric, text) to authenticated;
+revoke all     on function record_movement(uuid, text, integer, text, uuid, numeric, numeric, text, uuid) from public;
+revoke execute on function record_movement(uuid, text, integer, text, uuid, numeric, numeric, text, uuid) from anon;
+grant  execute on function record_movement(uuid, text, integer, text, uuid, numeric, numeric, text, uuid) to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- set_staff_role: admin-gated promote/demote, used by the Admin page so a
+-- privileged user can promote another staff member without dropping into
+-- SQL. SECURITY DEFINER + explicit caller-role check.
+-- ---------------------------------------------------------------------------
+create or replace function set_staff_role(
+  p_user_id uuid,
+  p_role    text
+) returns staff_profiles
+language plpgsql security definer
+set search_path = public, pg_temp as $$
+declare
+  v_caller_id uuid := auth.uid();
+  v_caller    staff_profiles;
+  v_updated   staff_profiles;
+begin
+  if v_caller_id is null then
+    raise exception 'not authenticated';
+  end if;
+  if p_role not in ('admin', 'staff') then
+    raise exception 'role must be ''admin'' or ''staff''';
+  end if;
+
+  select * into v_caller from staff_profiles where id = v_caller_id;
+  if v_caller is null or v_caller.role <> 'admin' then
+    raise exception 'admin role required';
+  end if;
+
+  if p_user_id = v_caller_id and p_role <> 'admin' then
+    raise exception 'cannot demote yourself — ask another admin to do it';
+  end if;
+
+  update staff_profiles
+     set role = p_role
+   where id = p_user_id
+   returning * into v_updated;
+
+  if v_updated is null then
+    raise exception 'staff profile % not found', p_user_id;
+  end if;
+
+  return v_updated;
+end;
+$$;
+
+revoke all     on function set_staff_role(uuid, text) from public;
+revoke execute on function set_staff_role(uuid, text) from anon;
+grant  execute on function set_staff_role(uuid, text) to authenticated;
 
 -- ---------------------------------------------------------------------------
 -- item_prices — per-item vendor price quotes powering OrderButton + spend
@@ -509,6 +598,30 @@ alter table documents      enable row level security;
 alter table staff_profiles enable row level security;
 alter table invites        enable row level security;
 alter table item_prices    enable row level security;
+alter table buildings      enable row level security;
+alter table building_items enable row level security;
+
+-- buildings + building_items: staff read, admin write. Matches the
+-- invites + item_prices pattern.
+drop policy if exists buildings_staff_select on buildings;
+create policy buildings_staff_select on buildings
+  for select to authenticated using (true);
+
+drop policy if exists buildings_admin_write on buildings;
+create policy buildings_admin_write on buildings
+  for all to authenticated
+  using      (exists (select 1 from staff_profiles p where p.id = auth.uid() and p.role = 'admin'))
+  with check (exists (select 1 from staff_profiles p where p.id = auth.uid() and p.role = 'admin'));
+
+drop policy if exists building_items_staff_select on building_items;
+create policy building_items_staff_select on building_items
+  for select to authenticated using (true);
+
+drop policy if exists building_items_admin_write on building_items;
+create policy building_items_admin_write on building_items
+  for all to authenticated
+  using      (exists (select 1 from staff_profiles p where p.id = auth.uid() and p.role = 'admin'))
+  with check (exists (select 1 from staff_profiles p where p.id = auth.uid() and p.role = 'admin'));
 
 -- item_prices: staff read, admin write. Reads are open so every scan
 -- can pick up the best-price snapshot; writes are admin-only because
