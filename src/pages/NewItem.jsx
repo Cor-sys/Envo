@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ITEM_TYPES,
   METADATA_FIELDS_BY_TYPE,
@@ -18,6 +18,10 @@ const NULLABLE = ['category', 'brand', 'model', 'barcode', 'location_text'];
 
 export default function NewItem() {
   const nav = useNavigate();
+  const [searchParams] = useSearchParams();
+  // Pre-fill barcode if we arrived here from /scan via the "Add to catalog"
+  // shortcut on an unrecognized code. Saves re-typing the UPC.
+  const prefillBarcode = searchParams.get('barcode') ?? '';
   const { profile } = useStaffProfile();
   const admin = isAdmin(profile);
   const [busy, setBusy] = useState(false);
@@ -33,7 +37,7 @@ export default function NewItem() {
     name: '',
     brand: '',
     model: '',
-    barcode: '',
+    barcode: prefillBarcode,
     qty: 0,
     threshold: 0,
     location_text: '',

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Check, Camera } from 'lucide-react';
+import { Check, Camera, Search, Plus } from 'lucide-react';
 import {
   getItem,
   itemTypeLabel,
@@ -35,6 +35,7 @@ export default function Scan() {
   const [flash, setFlash]           = useState(null);    // { name, direction } shown for 1.5s
   const [buildingId, setBuildingId] = useState('');      // optional destination tag
   const [capturing, setCapturing]   = useState(false);   // manual shutter in-flight
+  const [unknownCode, setUnknownCode] = useState(null);  // scanned but not in catalog
 
   // Camera + barcode detector lifecycle.
   // Path A: native BarcodeDetector (Chrome / Edge on Android + desktop).
@@ -160,15 +161,20 @@ export default function Scan() {
 
   async function lookup(code) {
     setError(null);
+    setUnknownCode(null);
     try {
       const found = await lookupItemByCode(code);
       if (!found) {
+        // Distinct UI state — surfaces a "Search Google / Add to catalog"
+        // card instead of a dead-end error so an unrecognized scan still
+        // has somewhere to go.
         setItem(null);
-        setError(`No item with barcode or SKU "${code}".`);
+        setUnknownCode(code);
         return;
       }
       setItem(found);
     } catch (e) {
+      setItem(null);
       setError(e.message);
     }
   }
@@ -403,6 +409,42 @@ export default function Scan() {
               {busy ? '…' : dirLabel}
             </button>
           </div>
+        </div>
+      ) : unknownCode ? (
+        /* Scanned a code that's not in our catalog. Give the user two ways
+           forward: identify it on the web (Google) or add it to the catalog
+           so future scans of the same code land on the item directly. */
+        <div className="surface p-4 space-y-3">
+          <div>
+            <div className="text-xs uppercase text-slate-500 tracking-wide">Not in catalog</div>
+            <div className="font-mono text-base text-slate-100 mt-0.5 tracking-wider break-all">{unknownCode}</div>
+            <div className="text-xs text-slate-500 mt-1">
+              We don't have this barcode yet. Identify it online, or add it to your catalog so future scans land here.
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <a
+              href={`https://www.google.com/search?q=${encodeURIComponent(unknownCode + ' UPC')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="tap-secondary justify-center"
+            >
+              <Search size={14} /> Search web
+            </a>
+            <Link
+              to={`/items/new?barcode=${encodeURIComponent(unknownCode)}`}
+              className="tap-primary justify-center"
+            >
+              <Plus size={14} /> Add to catalog
+            </Link>
+          </div>
+          <button
+            type="button"
+            onClick={() => setUnknownCode(null)}
+            className="block w-full text-center text-xs text-slate-500 hover:text-slate-400 underline-offset-2 hover:underline"
+          >
+            Dismiss and scan again
+          </button>
         </div>
       ) : (
         <div className="rounded-2xl border border-dashed border-slate-700 p-4 text-center text-sm text-slate-400 space-y-1">
