@@ -281,12 +281,21 @@ export default function Scan() {
         />
         {/* reticle */}
         <div className="pointer-events-none absolute inset-6 rounded-xl border-2 border-white/80 shadow-[0_0_0_9999px_rgba(2,6,23,0.55)]" />
-        {/* Status pill — top-left, out of the way of the matched-item flash. */}
+        {/* Status pill — top-left, out of the way of the matched-item flash.
+            Honey + pulse while hunting; flips to emerald + check the moment
+            a code lands so the user gets immediate visual confirmation. */}
         {scannerKind && !flash && !permDenied && (
-          <div className="absolute top-2 left-2 flex items-center gap-1.5 rounded-full bg-slate-950/85 px-2 py-0.5 text-[10.5px] font-medium text-honey-200 ring-1 ring-honey-400/30">
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-honey-400 animate-pulse" />
-            Scanning
-          </div>
+          (item || unknownCode) ? (
+            <div className="absolute top-2 left-2 flex items-center gap-1.5 rounded-full bg-emerald-950/85 px-2 py-0.5 text-[10.5px] font-medium text-emerald-200 ring-1 ring-emerald-400/40">
+              <Check size={11} strokeWidth={3} className="text-emerald-300" />
+              {item ? 'Matched' : 'Read'}
+            </div>
+          ) : (
+            <div className="absolute top-2 left-2 flex items-center gap-1.5 rounded-full bg-slate-950/85 px-2 py-0.5 text-[10.5px] font-medium text-honey-200 ring-1 ring-honey-400/30">
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-honey-400 animate-pulse" />
+              Scanning
+            </div>
+          )
         )}
         {!scannerKind && !permDenied && !error && (
           <div className="absolute top-2 left-2 flex items-center gap-1.5 rounded-full bg-slate-950/85 px-2 py-0.5 text-[10.5px] font-medium text-slate-300 ring-1 ring-slate-700">
