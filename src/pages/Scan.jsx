@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Check, Camera, Search, Plus } from 'lucide-react';
+import { Check, Search, Plus, X } from 'lucide-react';
 import {
   getItem,
   itemTypeLabel,
@@ -34,8 +34,12 @@ export default function Scan() {
   const [busy, setBusy]             = useState(false);
   const [flash, setFlash]           = useState(null);    // { name, direction } shown for 1.5s
   const [buildingId, setBuildingId] = useState('');      // optional destination tag
-  const [capturing, setCapturing]   = useState(false);   // manual shutter in-flight
   const [unknownCode, setUnknownCode] = useState(null);  // scanned but not in catalog
+  // Tracks the latest matched item without closure staleness. Used by the
+  // camera detection loop to decide whether a no-match read should clear
+  // the visible item or be ignored as shake-noise.
+  const itemRef = useRef(null);
+  useEffect(() => { itemRef.current = item; }, [item]);
 
   // Camera + barcode detector lifecycle.
   // Path A: native BarcodeDetector (Chrome / Edge on Android + desktop).
@@ -54,7 +58,7 @@ export default function Scan() {
       if (code !== lastCode || now - lastCodeAt > DEBOUNCE_MS) {
         lastCode = code;
         lastCodeAt = now;
-        lookup(code);
+        lookup(code, { fromCamera: true });
       }
     }
 
@@ -159,21 +163,25 @@ export default function Scan() {
     };
   }, []);
 
-  async function lookup(code) {
+  // fromCamera=true means this came from the continuous detection loop.
+  // We treat those reads more conservatively: a no-match is ignored when
+  // there's already a matched item visible, because that case is almost
+  // always shake-noise re-reading a partial code rather than a deliberate
+  // new scan. Manual entry / a successful new match still replaces.
+  async function lookup(code, { fromCamera = false } = {}) {
     setError(null);
-    setUnknownCode(null);
     try {
       const found = await lookupItemByCode(code);
       if (!found) {
-        // Distinct UI state — surfaces a "Search Google / Add to catalog"
-        // card instead of a dead-end error so an unrecognized scan still
-        // has somewhere to go.
+        if (fromCamera && itemRef.current) return;  // shake-noise — keep showing the matched item
         setItem(null);
         setUnknownCode(code);
         return;
       }
+      setUnknownCode(null);
       setItem(found);
     } catch (e) {
+      if (fromCamera && itemRef.current) return;
       setItem(null);
       setError(e.message);
     }
@@ -228,61 +236,6 @@ export default function Scan() {
     lookup(c);
   }
 
-  // Manual shutter — grab the current video frame at full resolution and
-  // try to decode it as a single still. The continuous loop sometimes
-  // misses (motion blur, glare, the user moving the phone), and the user
-  // expects a "take a photo" gesture from camera apps. We try native
-  // BarcodeDetector first, then fall back to ZXing for Safari/iOS.
-  async function captureFrame() {
-    if (capturing) return;
-    const v = videoRef.current;
-    if (!v || v.readyState < 2 || !v.videoWidth) {
-      setError('Camera not ready yet — give it a moment.');
-      return;
-    }
-    setCapturing(true);
-    setError(null);
-    hapticTap();
-    try {
-      const canvas = document.createElement('canvas');
-      canvas.width  = v.videoWidth;
-      canvas.height = v.videoHeight;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error('Canvas unavailable on this device.');
-      ctx.drawImage(v, 0, 0);
-
-      if ('BarcodeDetector' in window) {
-        try {
-          const detector = new window.BarcodeDetector({ formats: BARCODE_FORMATS });
-          const codes = await detector.detect(canvas);
-          if (codes.length > 0) {
-            lookup(codes[0].rawValue);
-            return;
-          }
-        } catch { /* fall through to zxing */ }
-      }
-
-      try {
-        const { BrowserMultiFormatReader } = await import('@zxing/browser');
-        const reader = new BrowserMultiFormatReader();
-        const dataUrl = canvas.toDataURL('image/png');
-        const result = await reader.decodeFromImageUrl(dataUrl);
-        if (result) {
-          lookup(result.getText());
-          return;
-        }
-      } catch { /* zxing throws NotFoundException when nothing decodes */ }
-
-      setError("Couldn't read a barcode in that frame. Move closer, hold steady, and tap again.");
-      hapticError();
-    } catch (e) {
-      setError(e.message);
-      hapticError();
-    } finally {
-      setCapturing(false);
-    }
-  }
-
   const inDir = direction === 'in';
   const dirLabel = inDir ? '+1 IN' : '−1 OUT';
 
@@ -327,10 +280,8 @@ export default function Scan() {
           className="h-full w-full object-cover"
         />
         {/* reticle */}
-        <div className="pointer-events-none absolute inset-6 rounded-xl border-2 border-white/80 shadow-[0_0_0_9999px_rgba(2,6,23,0.55)] overflow-hidden">
-          {scannerKind && !flash && <div className="scan-line" />}
-        </div>
-        {/* Status pill — top-left so the shutter button owns the bottom. */}
+        <div className="pointer-events-none absolute inset-6 rounded-xl border-2 border-white/80 shadow-[0_0_0_9999px_rgba(2,6,23,0.55)]" />
+        {/* Status pill — top-left, out of the way of the matched-item flash. */}
         {scannerKind && !flash && !permDenied && (
           <div className="absolute top-2 left-2 flex items-center gap-1.5 rounded-full bg-slate-950/85 px-2 py-0.5 text-[10.5px] font-medium text-honey-200 ring-1 ring-honey-400/30">
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-honey-400 animate-pulse" />
@@ -342,24 +293,6 @@ export default function Scan() {
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-slate-400 animate-pulse" />
             Starting…
           </div>
-        )}
-        {/* Manual shutter — forces a single full-resolution decode of the
-            current frame. Critical fallback when continuous detection won't
-            lock on (low-res cameras, motion blur, glare). */}
-        {scannerKind && !flash && !permDenied && (
-          <button
-            type="button"
-            onClick={captureFrame}
-            disabled={capturing}
-            aria-label="Capture frame and read barcode"
-            className="absolute bottom-3 left-1/2 -translate-x-1/2 h-14 w-14 rounded-full bg-honey-500 hover:bg-honey-400 active:bg-honey-600 ring-4 ring-honey-400/25 active:scale-95 transition-all disabled:opacity-60 flex items-center justify-center shadow-lg shadow-black/40 focus-visible:outline-none focus-visible:ring-honey-400/60"
-          >
-            {capturing ? (
-              <span className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <Camera size={22} className="text-white" strokeWidth={2.25} />
-            )}
-          </button>
         )}
         {flash && (
           <div className={`absolute inset-x-0 top-0 text-white px-3 py-2 text-sm font-medium flex items-center justify-center gap-1.5 ${
@@ -392,7 +325,20 @@ export default function Scan() {
                 {' · '}{itemTypeLabel(item.item_type)}
               </div>
             </div>
-            <StatusPill status={item.status} />
+            <div className="flex items-start gap-1.5 shrink-0">
+              <StatusPill status={item.status} />
+              {/* Dismiss — manual clear so the user can move on to a new
+                  scan (e.g. to identify an unknown code). Without this the
+                  matched item stays pinned once we ignore camera no-matches. */}
+              <button
+                type="button"
+                onClick={() => setItem(null)}
+                aria-label="Clear matched item"
+                className="text-slate-500 hover:text-slate-300 transition-colors p-1 -m-1"
+              >
+                <X size={14} />
+              </button>
+            </div>
           </div>
           <div className="flex items-center justify-between">
             <div>
@@ -447,9 +393,8 @@ export default function Scan() {
           </button>
         </div>
       ) : (
-        <div className="rounded-2xl border border-dashed border-slate-700 p-4 text-center text-sm text-slate-400 space-y-1">
-          <div>Point the camera at a UPC barcode or one of our QR labels.</div>
-          <div className="text-xs text-slate-500">If continuous scanning misses, tap the shutter to capture a single frame.</div>
+        <div className="rounded-2xl border border-dashed border-slate-700 p-4 text-center text-sm text-slate-400">
+          Point the camera at a UPC barcode or QR label and hold steady — it'll read automatically.
         </div>
       )}
 
