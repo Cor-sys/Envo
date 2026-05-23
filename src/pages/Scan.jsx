@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Check } from 'lucide-react';
+import { Check, Camera } from 'lucide-react';
 import {
   getItem,
   itemTypeLabel,
@@ -34,6 +34,7 @@ export default function Scan() {
   const [busy, setBusy]             = useState(false);
   const [flash, setFlash]           = useState(null);    // { name, direction } shown for 1.5s
   const [buildingId, setBuildingId] = useState('');      // optional destination tag
+  const [capturing, setCapturing]   = useState(false);   // manual shutter in-flight
 
   // Camera + barcode detector lifecycle.
   // Path A: native BarcodeDetector (Chrome / Edge on Android + desktop).
@@ -58,8 +59,16 @@ export default function Scan() {
 
     async function init() {
       try {
+        // Request the highest resolution the camera will give us. UPC bars
+        // are dense — at the default 640x480 most barcodes are unreadable.
+        // 1080p makes the difference between "nothing detected" and "locks
+        // on instantly" on most phone back cameras.
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: 'environment' } },
+          video: {
+            facingMode: { ideal: 'environment' },
+            width:  { ideal: 1920 },
+            height: { ideal: 1080 },
+          },
           audio: false,
         });
         if (stopped) {
@@ -71,6 +80,17 @@ export default function Scan() {
         v.srcObject = stream;
         v.setAttribute('playsinline', '');
         await v.play();
+
+        // Best-effort: enable continuous autofocus so the camera tracks the
+        // barcode as the user moves closer. Laptop webcams with fixed focus
+        // simply won't expose this capability — that's fine, we no-op.
+        try {
+          const track = stream.getVideoTracks()[0];
+          const caps  = track?.getCapabilities?.() ?? {};
+          if (Array.isArray(caps.focusMode) && caps.focusMode.includes('continuous')) {
+            await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
+          }
+        } catch { /* unsupported — ignore */ }
 
         let nativeDetector = null;
         if ('BarcodeDetector' in window) {
@@ -202,6 +222,61 @@ export default function Scan() {
     lookup(c);
   }
 
+  // Manual shutter — grab the current video frame at full resolution and
+  // try to decode it as a single still. The continuous loop sometimes
+  // misses (motion blur, glare, the user moving the phone), and the user
+  // expects a "take a photo" gesture from camera apps. We try native
+  // BarcodeDetector first, then fall back to ZXing for Safari/iOS.
+  async function captureFrame() {
+    if (capturing) return;
+    const v = videoRef.current;
+    if (!v || v.readyState < 2 || !v.videoWidth) {
+      setError('Camera not ready yet — give it a moment.');
+      return;
+    }
+    setCapturing(true);
+    setError(null);
+    hapticTap();
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width  = v.videoWidth;
+      canvas.height = v.videoHeight;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Canvas unavailable on this device.');
+      ctx.drawImage(v, 0, 0);
+
+      if ('BarcodeDetector' in window) {
+        try {
+          const detector = new window.BarcodeDetector({ formats: BARCODE_FORMATS });
+          const codes = await detector.detect(canvas);
+          if (codes.length > 0) {
+            lookup(codes[0].rawValue);
+            return;
+          }
+        } catch { /* fall through to zxing */ }
+      }
+
+      try {
+        const { BrowserMultiFormatReader } = await import('@zxing/browser');
+        const reader = new BrowserMultiFormatReader();
+        const dataUrl = canvas.toDataURL('image/png');
+        const result = await reader.decodeFromImageUrl(dataUrl);
+        if (result) {
+          lookup(result.getText());
+          return;
+        }
+      } catch { /* zxing throws NotFoundException when nothing decodes */ }
+
+      setError("Couldn't read a barcode in that frame. Move closer, hold steady, and tap again.");
+      hapticError();
+    } catch (e) {
+      setError(e.message);
+      hapticError();
+    } finally {
+      setCapturing(false);
+    }
+  }
+
   const inDir = direction === 'in';
   const dirLabel = inDir ? '+1 IN' : '−1 OUT';
 
@@ -249,19 +324,36 @@ export default function Scan() {
         <div className="pointer-events-none absolute inset-6 rounded-xl border-2 border-white/80 shadow-[0_0_0_9999px_rgba(2,6,23,0.55)] overflow-hidden">
           {scannerKind && !flash && <div className="scan-line" />}
         </div>
-        {/* Active-scan indicator. Sits at the bottom of the viewfinder so it
-            doesn't fight the match-flash banner that takes the top edge. */}
+        {/* Status pill — top-left so the shutter button owns the bottom. */}
         {scannerKind && !flash && !permDenied && (
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 rounded-full bg-slate-950/85 px-2.5 py-1 text-[11px] font-medium text-honey-200 ring-1 ring-honey-400/30">
+          <div className="absolute top-2 left-2 flex items-center gap-1.5 rounded-full bg-slate-950/85 px-2 py-0.5 text-[10.5px] font-medium text-honey-200 ring-1 ring-honey-400/30">
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-honey-400 animate-pulse" />
-            Scanning…
+            Scanning
           </div>
         )}
         {!scannerKind && !permDenied && !error && (
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 rounded-full bg-slate-950/85 px-2.5 py-1 text-[11px] font-medium text-slate-300 ring-1 ring-slate-700">
+          <div className="absolute top-2 left-2 flex items-center gap-1.5 rounded-full bg-slate-950/85 px-2 py-0.5 text-[10.5px] font-medium text-slate-300 ring-1 ring-slate-700">
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-slate-400 animate-pulse" />
-            Starting camera…
+            Starting…
           </div>
+        )}
+        {/* Manual shutter — forces a single full-resolution decode of the
+            current frame. Critical fallback when continuous detection won't
+            lock on (low-res cameras, motion blur, glare). */}
+        {scannerKind && !flash && !permDenied && (
+          <button
+            type="button"
+            onClick={captureFrame}
+            disabled={capturing}
+            aria-label="Capture frame and read barcode"
+            className="absolute bottom-3 left-1/2 -translate-x-1/2 h-14 w-14 rounded-full bg-honey-500 hover:bg-honey-400 active:bg-honey-600 ring-4 ring-honey-400/25 active:scale-95 transition-all disabled:opacity-60 flex items-center justify-center shadow-lg shadow-black/40 focus-visible:outline-none focus-visible:ring-honey-400/60"
+          >
+            {capturing ? (
+              <span className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <Camera size={22} className="text-white" strokeWidth={2.25} />
+            )}
+          </button>
         )}
         {flash && (
           <div className={`absolute inset-x-0 top-0 text-white px-3 py-2 text-sm font-medium flex items-center justify-center gap-1.5 ${
@@ -315,7 +407,7 @@ export default function Scan() {
       ) : (
         <div className="rounded-2xl border border-dashed border-slate-700 p-4 text-center text-sm text-slate-400 space-y-1">
           <div>Point the camera at a UPC barcode or one of our QR labels.</div>
-          <div className="text-xs text-slate-500">Hold ~4–8&nbsp;inches away and keep steady — focus catches automatically.</div>
+          <div className="text-xs text-slate-500">If continuous scanning misses, tap the shutter to capture a single frame.</div>
         </div>
       )}
 
