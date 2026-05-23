@@ -228,31 +228,6 @@
     @apply flex gap-1.5 overflow-x-auto pb-1 -mx-3 px-3;
   }
 
-  /* ----- Scanner viewfinder feedback ----------------------------------- */
-  /* Honey sweep inside the reticle so the user can see the detector is
-     hunting. Without this the viewfinder looks dead even though the
-     camera is fully active — easy to mistake for a broken scanner. */
-  .scan-line {
-    position: absolute;
-    left: 6%;
-    right: 6%;
-    height: 2px;
-    border-radius: 9999px;
-    background: linear-gradient(
-      to right,
-      transparent 0%,
-      rgba(232, 167, 95, 0.95) 50%,
-      transparent 100%
-    );
-    box-shadow: 0 0 14px rgba(232, 167, 95, 0.65);
-    pointer-events: none;
-    animation: scan-line-sweep 2.2s ease-in-out infinite;
-  }
-  @keyframes scan-line-sweep {
-    0%, 100% { top: 6%;  opacity: 0.55; }
-    15%, 85% { opacity: 1; }
-    50%      { top: calc(100% - 8px); }
-  }
 }
 
 @layer components {
