@@ -78,8 +78,9 @@ Deno.serve(async (req) => {
     .eq("id", userRes.user.id)
     .maybeSingle();
   if (profErr) return json({ error: profErr.message }, 500);
-  if (!profile || profile.role !== "admin") {
-    return json({ error: "Admin only." }, 403);
+  // SDS docs are manager-tier (catalog upkeep); owner/admin included by rank.
+  if (!profile || !["owner", "admin", "manager"].includes(profile.role)) {
+    return json({ error: "Manager access required." }, 403);
   }
 
   // ---- input -----------------------------------------------------------

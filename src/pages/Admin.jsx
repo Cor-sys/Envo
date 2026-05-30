@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { createInvite, listStaff, setStaffRole, useStaffProfile } from '../lib/auth.jsx';
+import { createInvite, isAdmin, listStaff, setStaffRole, useStaffProfile } from '../lib/auth.jsx';
 import { supabase } from '../lib/supabase.js';
 import EmptyState from '../components/EmptyState.jsx';
 import ErrorBanner from '../components/ErrorBanner.jsx';
@@ -42,13 +42,19 @@ export default function Admin() {
 
   useEffect(() => { load(); }, [load]);
 
-  async function toggleRole(user) {
-    const next = user.role === 'admin' ? 'staff' : 'admin';
-    const verb = next === 'admin' ? 'promote' : 'demote';
-    if (!confirm(`${verb === 'promote' ? 'Promote' : 'Demote'} ${user.username || user.full_name || 'this user'} to ${next}?`)) return;
+  // Roles the current user may grant. set_staff_role re-checks server-side;
+  // this just shapes the dropdown. owner can grant anything; admin up to manager.
+  const grantableRoles =
+    profile?.role === 'owner' ? ['staff', 'manager', 'admin', 'owner']
+    : profile?.role === 'admin' ? ['staff', 'manager']
+    : [];
+
+  async function changeRole(user, next) {
+    if (next === user.role) return;
+    if (!confirm(`Change ${user.username || user.full_name || 'this user'} to ${next}?`)) return;
     setError(null);
     setRoleBusy(user.id);
-    // Optimistic update so the toggle feels instant.
+    // Optimistic update so it feels instant.
     const prev = staff;
     setStaff((cur) => cur?.map((u) => u.id === user.id ? { ...u, role: next } : u) ?? null);
     try {
@@ -121,7 +127,7 @@ export default function Admin() {
       </div>
     );
   }
-  if (!profile || profile.role !== 'admin') {
+  if (!profile || !isAdmin(profile)) {
     return (
       <div className="p-3 space-y-3">
         <ErrorBanner message="Admin access required." />
@@ -133,7 +139,7 @@ export default function Admin() {
   return (
     <div className="p-3 space-y-4">
       <p className="text-xs text-slate-500">
-        Signed in as <span className="text-slate-300 font-mono">{profile.username}</span> · role <span className="text-sage-300">admin</span>
+        Signed in as <span className="text-slate-300 font-mono">{profile.username}</span> · role <span className="text-sage-300">{profile.role}</span>
       </p>
 
       <section className="surface p-3 space-y-3">
@@ -176,13 +182,18 @@ export default function Admin() {
         <ul className="space-y-2">
           {staff?.map((u) => {
             const isSelf = u.id === profile?.id;
-            const isAdmin = u.role === 'admin';
+            const elevated = u.role === 'owner' || u.role === 'admin';
+            // Owner manages anyone (but self); admin manages only staff/manager.
+            const canManage = !isSelf && (
+              profile?.role === 'owner' ||
+              (profile?.role === 'admin' && (u.role === 'staff' || u.role === 'manager'))
+            );
             return (
               <li key={u.id} className="surface p-3 flex items-center gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-medium text-slate-100 truncate">{u.full_name || u.username || '—'}</span>
-                    <span className={isAdmin ? 'pill-ok' : 'pill-muted'}>{u.role}</span>
+                    <span className={elevated ? 'pill-ok' : 'pill-muted'}>{u.role}</span>
                     {isSelf && (
                       <span className="text-[10.5px] font-semibold uppercase tracking-wider text-slate-500">you</span>
                     )}
@@ -191,15 +202,17 @@ export default function Admin() {
                     <div className="text-xs text-slate-500 font-mono mt-0.5">{u.username}</div>
                   )}
                 </div>
-                {!isSelf && (
-                  <button
-                    type="button"
-                    onClick={() => toggleRole(u)}
+                {canManage && (
+                  <select
+                    value={u.role}
                     disabled={roleBusy === u.id}
-                    className="tap-sm-secondary shrink-0"
+                    onChange={(e) => changeRole(u, e.target.value)}
+                    className="shrink-0 rounded-lg border border-slate-700 bg-slate-900 px-2 py-1.5 text-sm text-slate-200"
                   >
-                    {roleBusy === u.id ? '…' : isAdmin ? 'Demote to staff' : 'Make admin'}
-                  </button>
+                    {grantableRoles.map((r) => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </select>
                 )}
               </li>
             );

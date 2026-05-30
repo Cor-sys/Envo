@@ -9,7 +9,7 @@ import {
   updateBuildingNotes,
 } from '../lib/buildings.js';
 import { listItems } from '../lib/items.js';
-import { isAdmin, useStaffProfile } from '../lib/auth.jsx';
+import { isManager, useStaffProfile } from '../lib/auth.jsx';
 import StatusPill from '../components/StatusPill.jsx';
 import EmptyState from '../components/EmptyState.jsx';
 import ErrorBanner from '../components/ErrorBanner.jsx';
@@ -137,7 +137,8 @@ export default function MapPage() {
 // building_items, and an unlink X on each linked row.
 function BuildingSheet({ id, onClose }) {
   const { profile } = useStaffProfile();
-  const admin = isAdmin(profile);
+  // Building edits (notes, item links) are manager+.
+  const admin = isManager(profile);
   const [b, setB] = useState(null);
   const [error, setError] = useState(null);
   const [editing, setEditing] = useState(false);

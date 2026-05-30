@@ -9,7 +9,7 @@ import {
 } from '../lib/items.js';
 import { removeItemPhoto, uploadItemPhoto } from '../lib/photos.js';
 import { listPricesForItem, savePrices } from '../lib/prices.js';
-import { isAdmin, useStaffProfile } from '../lib/auth.jsx';
+import { isManager, useStaffProfile } from '../lib/auth.jsx';
 import PhotoInput from '../components/PhotoInput.jsx';
 import PricingEditor from '../components/PricingEditor.jsx';
 import ErrorBanner from '../components/ErrorBanner.jsx';
@@ -20,7 +20,8 @@ export default function EditItem() {
   const { id } = useParams();
   const nav = useNavigate();
   const { profile } = useStaffProfile();
-  const admin = isAdmin(profile);
+  // Catalog + pricing edits are manager+.
+  const admin = isManager(profile);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [loaded, setLoaded] = useState(false);
