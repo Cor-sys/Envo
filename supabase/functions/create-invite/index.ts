@@ -66,7 +66,7 @@ Deno.serve(async (req) => {
     .eq("id", userRes.user.id)
     .maybeSingle();
   if (profErr) return json({ error: profErr.message }, 500);
-  if (!profile || profile.role !== "admin") {
+  if (!profile || !["admin", "owner"].includes(profile.role)) {
     return json({ error: "Admin only." }, 403);
   }
 

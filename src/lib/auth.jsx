@@ -63,9 +63,22 @@ export function useStaffProfile() {
   return { profile, loading };
 }
 
-export function isAdmin(profile) {
-  return profile?.role === 'admin';
+// Role hierarchy. Higher rank = more access. Mirrors the DB role_rank() in
+// migration 211 so UI gating and RLS agree on who can do what.
+const ROLE_RANK = { owner: 4, admin: 3, manager: 2, staff: 1 };
+
+export function roleRank(profile) {
+  return ROLE_RANK[profile?.role] ?? 0;
 }
+
+// hasRole(profile, 'manager') => caller is manager or above.
+export function hasRole(profile, min) {
+  return roleRank(profile) >= (ROLE_RANK[min] ?? 99);
+}
+
+export const isOwner   = (profile) => profile?.role === 'owner';
+export const isAdmin   = (profile) => hasRole(profile, 'admin');   // owner or admin
+export const isManager = (profile) => hasRole(profile, 'manager'); // manager and up
 
 // Sign in with either a username or an email. If the input has no '@', we
 // resolve it to the user's real email via the get_email_for_username RPC and

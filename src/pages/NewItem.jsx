@@ -9,7 +9,7 @@ import {
 } from '../lib/items.js';
 import { uploadItemPhoto } from '../lib/photos.js';
 import { savePrices } from '../lib/prices.js';
-import { isAdmin, useStaffProfile } from '../lib/auth.jsx';
+import { isManager, useStaffProfile } from '../lib/auth.jsx';
 import PhotoInput from '../components/PhotoInput.jsx';
 import PricingEditor from '../components/PricingEditor.jsx';
 import ErrorBanner from '../components/ErrorBanner.jsx';
@@ -23,7 +23,8 @@ export default function NewItem() {
   // shortcut on an unrecognized code. Saves re-typing the UPC.
   const prefillBarcode = searchParams.get('barcode') ?? '';
   const { profile } = useStaffProfile();
-  const admin = isAdmin(profile);
+  // Creating catalog items + pricing is manager+.
+  const admin = isManager(profile);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   // Held in component state until save — we don't have an item id to upload
