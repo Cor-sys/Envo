@@ -1,0 +1,22 @@
+name: CI
+
+# Build check on every PR into main/dev. Branch protection on `main` requires
+# this to pass before a merge is allowed, so a broken build can't reach prod.
+on:
+  pull_request:
+    branches: [main, dev]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build
