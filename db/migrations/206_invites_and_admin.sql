@@ -99,6 +99,8 @@ grant  execute on function get_email_for_username(text) to anon, authenticated;
 -- 4. Promote the project owner to admin.
 --    Lookups by email rather than hard-coded UUID so this migration replays
 --    cleanly in a fresh local environment that the owner has signed into.
+--    >>> CHANGE this to the email of the account that should be the first admin
+--    >>> (the one you signed in with) before running on a fresh deployment.
 -- ---------------------------------------------------------------------------
 insert into staff_profiles (id, full_name, role, is_active, username)
 select u.id,
@@ -107,7 +109,7 @@ select u.id,
        true,
        'admin'
   from auth.users u
- where u.email = 'charles.a.hubbard@icloud.com'
+ where u.email = 'owner@example.com'
 on conflict (id) do update
   set role = 'admin',
       is_active = true,

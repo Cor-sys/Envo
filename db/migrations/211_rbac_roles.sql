@@ -71,13 +71,15 @@ alter table staff_profiles
 
 -- ---------------------------------------------------------------------------
 -- 3. Promote the project owner. Keyed off email (same pattern as migration
---    206) so it replays cleanly. EDIT this if the owner's email changes.
+--    206) so it replays cleanly.
+--    >>> CHANGE this to the email of the account that should be the owner
+--    >>> before running on a fresh deployment.
 -- ---------------------------------------------------------------------------
 update staff_profiles p
    set role = 'owner', is_active = true
   from auth.users u
  where u.id = p.id
-   and u.email = 'charles.a.hubbard@icloud.com';
+   and u.email = 'owner@example.com';
 
 -- ---------------------------------------------------------------------------
 -- 4. Protect role / is_active from direct client UPDATEs. Only a privileged

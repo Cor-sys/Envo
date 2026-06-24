@@ -30,9 +30,30 @@ get blocked.
 - 👥 **Role-based access** — owner / admin / manager / staff, invite-based signup.
 - 📱 **Installable PWA**, works on any phone, offline-tolerant.
 
-## Run it (self-hosted, no cloud)
+## Run it
 
-Everything runs on one machine via Docker:
+Two ways to deploy — pick whichever fits. Both run the same app; they only
+differ in *where the backend lives*.
+
+### Option A — Cloud (fastest, no hardware)
+
+Host the database on Supabase's cloud and the app on any static host.
+
+1. **Create a Supabase project** at [supabase.com](https://supabase.com).
+2. **Build the database** — in the Supabase SQL editor, run `db/schema.sql`,
+   then each file in `db/migrations/` in order. (Edit the owner email in
+   `206_*` / `211_*` first — see the `CHANGE this` note in those files.)
+3. **Create two storage buckets**: `item-photos` and `sds` (for item photos and
+   Safety Data Sheets).
+4. **Deploy the edge functions** in `supabase/functions/` (`create-invite`,
+   `redeem-invite`, `cache-sds`) with the Supabase CLI.
+5. **Deploy the app**: copy `.env.example` to `.env.local`, fill in your project
+   URL + anon key, then `npm run build` and serve `dist/` on any static host
+   (Cloudflare, Netlify, Vercel, …).
+
+### Option B — Self-host (no cloud, runs on one box)
+
+Everything — app + database + auth + storage — on a machine you own:
 
 ```bash
 node deploy/gen-keys.mjs              # generate secrets
@@ -40,14 +61,15 @@ cp deploy/.env.example deploy/.env    # paste them in, set your LAN URL
 docker compose --env-file deploy/.env -f deploy/docker-compose.yml up -d --build
 ```
 
-Open `http://<box-ip>:8080`. Full walkthrough — including how to propose it to a
-security-conscious IT department — in **[SELF-HOST.md](./SELF-HOST.md)**.
+Open `http://<box-ip>:8080`. The schema and migrations apply automatically. Full
+walkthrough — including how to propose it to a security-conscious IT department —
+in **[SELF-HOST.md](./SELF-HOST.md)**.
 
 ## Tech
 
 React + Vite + Tailwind on the front end; Supabase (Postgres + auth + storage +
-edge functions) on the back end — all self-hosted in the Docker stack above. See
-[`BRIEF.md`](./BRIEF.md) for the data model and design rules.
+edge functions) on the back end — hosted (Option A) or self-hosted (Option B).
+See [`BRIEF.md`](./BRIEF.md) for the data model and design rules.
 
 ## Develop
 
