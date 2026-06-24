@@ -23,7 +23,7 @@ audience and credibility, and keeps a commercial lane open later (hosted version
 | Channel | What to do | Effort |
 |---|---|---|
 | **GitHub (public)** | Make the repo public. This is home base. | 5 min |
-| **Live demo (GitHub Pages)** | Enable Pages (Actions source). `demo.yml` auto-publishes it. | 5 min |
+| **Live demo (Cloudflare Pages)** | You already have `envo.pages.dev`. Set `VITE_DEMO_MODE=true` + remove any Access lock so the public sees sample data, not a login. | 5 min |
 | **r/selfhosted** | Show-and-tell post (draft below). Best single channel. | 20 min |
 | **r/homelab** | Same post, lightly retargeted. | 5 min |
 | **awesome-selfhosted** | PR adding Stockroom to the Inventory section. Long-tail traffic. | 20 min |
@@ -36,7 +36,8 @@ audience and credibility, and keeps a commercial lane open later (hosted version
 
 1. **Polish the storefront.** Add 2–3 screenshots (or a short GIF of a barcode
    scan) to the README. *This matters more than anything else* — visuals convert.
-2. **Make the repo public** and **enable Pages** so the live demo link works.
+2. **Make the repo public** and flip `envo.pages.dev` to demo mode (see below)
+   so the live demo link works for strangers.
 3. **Post to r/selfhosted** (draft below). Reply to every comment for the first
    48h — engagement drives the algorithm.
 4. **Submit the awesome-selfhosted PR** and **selfh.st** the same week.
@@ -88,7 +89,9 @@ audience and credibility, and keeps a commercial lane open later (hosted version
 
 ## Things only you can do
 - Make the repo **public** (GitHub → Settings → General → Change visibility).
-- Enable **Pages** (Settings → Pages → Source: GitHub Actions) for the demo.
+- Turn **`envo.pages.dev` into the public demo**: Cloudflare Pages → `envo`
+  project → Settings → Variables → `VITE_DEMO_MODE = true`, redeploy; remove any
+  Cloudflare Access rule so it loads without a login.
 - Add **screenshots** to the README (or send them to me and I'll wire them in).
 - Decide the endgame: pure open-source project, or open-core with a paid hosted
   version later. Both start with the steps above — it only forks down the road.
