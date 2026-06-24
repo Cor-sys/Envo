@@ -47,3 +47,17 @@ a mini-PC:
 - App: `npm run build` produces a static bundle servable by any web server.
 - DB + auth: Supabase is itself open source; `db/schema.sql` also imports
   cleanly into a vanilla Postgres if you skip the `auth.users` references.
+
+## License & intended use
+
+Licensed under the **GNU AGPL-3.0** — see [`LICENSE`](./LICENSE). You're free to
+**host it on your own servers, modify it, and run/service it internally.** The
+AGPL's only catch: if you distribute it or offer a modified version to others
+over a network, those changes must be shared under the same license.
+
+**Scope / data sensitivity:** this app is built for *consumable* inventory —
+item counts, locations, and check-in/check-out for things like lighting and bulb
+stock. It is **not** designed to hold sensitive or regulated data (no student
+records, PII, or financial data), and it should not be used for that purpose.
+
+For on-prem/self-hosted deployments, see the **Self-host escape hatch** above.
