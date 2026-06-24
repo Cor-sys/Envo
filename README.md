@@ -1,63 +1,74 @@
 # Stockroom
 
-Mobile-first inventory app for a small lighting/bulb stockroom. See
-[`BRIEF.md`](./BRIEF.md) for goals, scope, data model, and build order.
+**A mobile-first, self-hostable inventory app for consumables.** Scan a barcode,
+check stock in or out, track quantities, locations, prices, and chemical safety
+sheets — from your phone. Runs entirely on your own hardware. No cloud, no
+subscription, no vendor.
 
-## Stack
+> 🔎 **[Try the live demo →](https://cor-sys.github.io/Envo/)** (sample data, no signup)
 
-- React + Vite + Tailwind (mobile-first UI)
-- Supabase (Postgres + auth + RLS) — fully self-hostable
-- Render free tier for hosting (any static host works)
+<!-- TODO: drop a screenshot or screen-capture GIF here — it sells the app
+     faster than any paragraph. Scan screen + inventory list are the money shots. -->
 
-## Quick start
+## Why
 
-```powershell
-# 1. Install dependencies
+Most inventory tools are SaaS: monthly fees, your data on someone else's server.
+Stockroom is the opposite — it's open source (AGPL-3.0) and built to run on a
+$150 mini-PC on your own network. Your data never leaves the building. That makes
+it a fit for shops, labs, theaters, makerspaces, facilities/maintenance teams,
+and anyone in a locked-down environment (schools, agencies) where cloud tools
+get blocked.
+
+## Features
+
+- 📷 **Barcode/QR scanning** from the phone camera — instant item lookup, plus
+  add-to-catalog for unknown codes.
+- 📦 **Any inventory type** — bulbs, tools, paint, chemicals, belts, supplies.
+  One flexible item model, zero migrations to add a new category.
+- 🔁 **Atomic check-in / check-out** with an immutable activity log.
+- 🧪 **Chemical safety (SDS)** — attach and track Safety Data Sheets per item.
+- 🏷️ **Printable QR labels** and a building/location map.
+- 💵 **Cost tracking** — prices, spend, and savings reporting.
+- 👥 **Role-based access** — owner / admin / manager / staff, invite-based signup.
+- 📱 **Installable PWA**, works on any phone, offline-tolerant.
+
+## Run it (self-hosted, no cloud)
+
+Everything runs on one machine via Docker:
+
+```bash
+node deploy/gen-keys.mjs              # generate secrets
+cp deploy/.env.example deploy/.env    # paste them in, set your LAN URL
+docker compose --env-file deploy/.env -f deploy/docker-compose.yml up -d --build
+```
+
+Open `http://<box-ip>:8080`. Full walkthrough — including how to propose it to a
+security-conscious IT department — in **[SELF-HOST.md](./SELF-HOST.md)**.
+
+## Tech
+
+React + Vite + Tailwind on the front end; Supabase (Postgres + auth + storage +
+edge functions) on the back end — all self-hosted in the Docker stack above. See
+[`BRIEF.md`](./BRIEF.md) for the data model and design rules.
+
+## Develop
+
+```bash
 npm install
-
-# 2. Create a Supabase project, then run db/schema.sql in its SQL editor.
-#    (Self-host alternative: psql -f db/schema.sql against your own Postgres.)
-
-# 3. Copy env template and fill in your project URL + anon key.
-Copy-Item .env.example .env.local
-# then edit .env.local
-
-# 4. Run the dev server. Open on your phone via the LAN URL Vite prints.
-npm run dev
+npm run dev          # http://localhost:5173 (and your LAN IP for phone testing)
+# Want sample data with no backend? add VITE_DEMO_MODE=true to .env.local
 ```
 
-The dev server binds to all interfaces (`vite.config.js`) so phones on the same
-Wi-Fi can hit it during development — e.g. `http://192.168.x.x:5173`.
-
-## Project layout
-
-```
-db/schema.sql        Postgres schema, RLS, and the record_movement() RPC
-                     that does atomic check-in/out (see BRIEF.md §8.1).
-src/lib/supabase.js  Client + recordMovement() helper.
-src/App.jsx          Mobile shell with a bottom tab bar.
-BRIEF.md             Project brief — source of truth for v1 scope.
-```
-
-## Self-host escape hatch
-
-If a hosted free tier ever changes its terms, every piece of this stack runs on
-a mini-PC:
-
-- App: `npm run build` produces a static bundle servable by any web server.
-- DB + auth: Supabase is itself open source; `db/schema.sql` also imports
-  cleanly into a vanilla Postgres if you skip the `auth.users` references.
+See [`ONBOARDING.md`](./ONBOARDING.md) for the full dev setup.
 
 ## License & intended use
 
 Licensed under the **GNU AGPL-3.0** — see [`LICENSE`](./LICENSE). You're free to
-**host it on your own servers, modify it, and run/service it internally.** The
-AGPL's only catch: if you distribute it or offer a modified version to others
-over a network, those changes must be shared under the same license.
+host, modify, and run it yourself. If you offer a modified version to others over
+a network, those changes must be shared under the same license. (Want to use it
+commercially without that obligation? The copyright is held in one place, so a
+separate commercial license is possible — open an issue.)
 
-**Scope / data sensitivity:** this app is built for *consumable* inventory —
-item counts, locations, and check-in/check-out for things like lighting and bulb
-stock. It is **not** designed to hold sensitive or regulated data (no student
-records, PII, or financial data), and it should not be used for that purpose.
-
-For on-prem/self-hosted deployments, see the **Self-host escape hatch** above.
+**Scope:** built for *consumable* inventory — counts, locations, check-in/out.
+It is **not** designed to hold sensitive or regulated data (no PII, student, or
+financial records).

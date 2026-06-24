@@ -1,0 +1,53 @@
+# Publish a live, backend-free demo to GitHub Pages.
+#
+# Builds the app in DEMO MODE (VITE_DEMO_MODE=true) — an in-memory mock with
+# realistic sample inventory, so anyone can try the full UI with zero setup.
+# Gives the README a "Try it live" link that sells the project in 30 seconds.
+#
+# One-time setup by the repo owner: Settings -> Pages -> Source: "GitHub Actions".
+# (Requires the repo to be public, or GitHub Pro for private Pages.)
+name: Demo
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      # base must match the Pages sub-path: https://<owner>.github.io/Envo/
+      - run: npm run build -- --base=/Envo/
+        env:
+          VITE_DEMO_MODE: "true"
+      # SPA fallback so deep links (e.g. /scan) boot the app on Pages.
+      - run: cp dist/index.html dist/404.html
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
