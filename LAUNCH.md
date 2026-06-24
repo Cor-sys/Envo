@@ -23,21 +23,19 @@ audience and credibility, and keeps a commercial lane open later (hosted version
 | Channel | What to do | Effort |
 |---|---|---|
 | **GitHub (public)** | Make the repo public. This is home base. | 5 min |
-| **Live demo (Cloudflare)** | Add a 2nd Cloudflare project on the same repo, build `npm run build:demo`, deploy `npx wrangler deploy -c wrangler.demo.jsonc`. Auto-builds like the real app; sample-data only. | 10 min |
 | **r/selfhosted** | Show-and-tell post (draft below). Best single channel. | 20 min |
 | **r/homelab** | Same post, lightly retargeted. | 5 min |
 | **awesome-selfhosted** | PR adding Stockroom to the Inventory section. Long-tail traffic. | 20 min |
 | **selfh.st** | Submit to the newsletter/weekly — big self-hosted reach. | 10 min |
 | **r/techtheatre** | Theater-flavored post (the origin story sells here). | 15 min |
 | **AlternativeTo** | List as an alternative to Sortly / inFlow / Grocy. | 15 min |
-| **Product Hunt** | One-time launch once the demo + screenshots are solid. | 1–2 hr |
+| **Product Hunt** | One-time launch once the screenshots are solid. | 1–2 hr |
 
 ## HOW — order of operations
 
 1. **Polish the storefront.** Add 2–3 screenshots (or a short GIF of a barcode
    scan) to the README. *This matters more than anything else* — visuals convert.
-2. **Make the repo public** and deploy the separate public demo (see below) so
-   the live demo link works for strangers — your real app stays locked.
+2. **Make the repo public.**
 3. **Post to r/selfhosted** (draft below). Reply to every comment for the first
    48h — engagement drives the algorithm.
 4. **Submit the awesome-selfhosted PR** and **selfh.st** the same week.
@@ -62,7 +60,6 @@ audience and credibility, and keeps a commercial lane open later (hosted version
 > no external cloud, data never leaves your network. Put it on an isolated VLAN
 > and it's effectively air-gapped.
 >
-> Live demo (sample data, no signup): <link>
 > Source (AGPL-3.0): <link>
 >
 > Stack: React/Vite + self-hosted Supabase. Feedback welcome — happy to answer
@@ -82,20 +79,13 @@ audience and credibility, and keeps a commercial lane open later (hosted version
 > Built this to manage our bulb/gel/expendables stockroom — scan a barcode on
 > your phone to check things in and out, track counts and locations, print QR
 > labels for bins. It's free and open source, runs on a cheap mini-PC (no cloud,
-> no subscription). Demo + source in comments. Would love feedback from other
+> no subscription). Source + screenshots in comments. Would love feedback from other
 > folks managing a shop.
 
 ---
 
 ## Things only you can do
 - Make the repo **public** (GitHub → Settings → General → Change visibility).
-- **Deploy the public demo** (keeps your real app private): the real app
-  auto-deploys from this repo via Cloudflare. Do the same for the demo — add a
-  **second Cloudflare project** on the same repo with **build command**
-  `npm run build:demo` and **deploy command**
-  `npx wrangler deploy -c wrangler.demo.jsonc`, no access gate. Cloudflare builds
-  and serves it at `envo-demo.corsys.workers.dev`, rebuilding on every push.
-  Leave the real `envo` app's gate exactly as is.
 - Add **screenshots** to the README (or send them to me and I'll wire them in).
 - Decide the endgame: pure open-source project, or open-core with a paid hosted
   version later. Both start with the steps above — it only forks down the road.

@@ -7,8 +7,6 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "build:demo": "vite build --mode demo --outDir dist-demo",
-    "deploy:demo": "npm run build:demo && wrangler deploy -c wrangler.demo.jsonc",
     "preview": "vite preview --host",
     "check-sds": "node scripts/check-sds.mjs",
     "cache-sds-existing": "node scripts/cache-existing-sds.mjs"
