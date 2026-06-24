@@ -23,7 +23,7 @@ audience and credibility, and keeps a commercial lane open later (hosted version
 | Channel | What to do | Effort |
 |---|---|---|
 | **GitHub (public)** | Make the repo public. This is home base. | 5 min |
-| **Live demo (Cloudflare)** | Deploy a *separate* public demo Worker (`npm run deploy:demo` → `envo-demo.corsys.workers.dev`). Real app stays private; demo is sample-data only. | 10 min |
+| **Live demo (Cloudflare)** | Add a 2nd Cloudflare project on the same repo, build `npm run build:demo`, deploy `npx wrangler deploy -c wrangler.demo.jsonc`. Auto-builds like the real app; sample-data only. | 10 min |
 | **r/selfhosted** | Show-and-tell post (draft below). Best single channel. | 20 min |
 | **r/homelab** | Same post, lightly retargeted. | 5 min |
 | **awesome-selfhosted** | PR adding Stockroom to the Inventory section. Long-tail traffic. | 20 min |
@@ -89,11 +89,13 @@ audience and credibility, and keeps a commercial lane open later (hosted version
 
 ## Things only you can do
 - Make the repo **public** (GitHub → Settings → General → Change visibility).
-- **Deploy the public demo** (keeps your real app private): run
-  `npm run deploy:demo` to ship a separate, sample-data-only Worker at
-  `envo-demo.corsys.workers.dev` with no access gate. (Or in Cloudflare, create a
-  new project `envo-demo` from this repo with build command `npm run build:demo`
-  and output dir `dist-demo`.) Leave the real `envo` app's gate exactly as is.
+- **Deploy the public demo** (keeps your real app private): the real app
+  auto-deploys from this repo via Cloudflare. Do the same for the demo — add a
+  **second Cloudflare project** on the same repo with **build command**
+  `npm run build:demo` and **deploy command**
+  `npx wrangler deploy -c wrangler.demo.jsonc`, no access gate. Cloudflare builds
+  and serves it at `envo-demo.corsys.workers.dev`, rebuilding on every push.
+  Leave the real `envo` app's gate exactly as is.
 - Add **screenshots** to the README (or send them to me and I'll wire them in).
 - Decide the endgame: pure open-source project, or open-core with a paid hosted
   version later. Both start with the steps above — it only forks down the road.
