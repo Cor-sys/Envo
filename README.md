@@ -5,7 +5,7 @@ check stock in or out, track quantities, locations, prices, and chemical safety
 sheets — from your phone. Runs entirely on your own hardware. No cloud, no
 subscription, no vendor.
 
-> 🔎 **[Try the live demo →](https://envo.corsys.workers.dev/)** (sample data, no signup)
+> 🔎 **[Try the live demo →](https://envo-demo.corsys.workers.dev/)** (sample data, no signup)
 
 <!-- TODO: drop a screenshot or screen-capture GIF here — it sells the app
      faster than any paragraph. Scan screen + inventory list are the money shots. -->

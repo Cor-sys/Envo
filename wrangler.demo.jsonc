@@ -1,0 +1,14 @@
+{
+  // Deploy target for the PUBLIC DEMO only — a separate Worker from the real
+  // app (wrangler.jsonc / "envo"), so the live app keeps its access gate while
+  // strangers can try the sample-data demo here. Build first with
+  // `npm run build:demo` (outputs ./dist-demo in DEMO mode), then
+  // `wrangler deploy -c wrangler.demo.jsonc`.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "envo-demo",
+  "compatibility_date": "2026-05-21",
+  "assets": {
+    "directory": "./dist-demo",
+    "not_found_handling": "single-page-application"
+  }
+}
