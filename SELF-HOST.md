@@ -74,8 +74,10 @@ docker compose -f deploy/docker-compose.yml exec db \
 
 ## If you're proposing this to IT
 
-The earlier denial was about the **cloud** build. This deployment is a different
-architecture, and it's worth saying so plainly:
+Cloud-hosted SaaS often gets blocked in locked-down environments (state
+agencies, schools, healthcare) over vendor certification and data-residency
+rules. This self-hosted deployment is a different architecture, and it's worth
+saying so plainly:
 
 - **No cloud service.** No TX-RAMP / HECVAT question — there's no external
   vendor or hosted service to assess.
@@ -88,9 +90,9 @@ architecture, and it's worth saying so plainly:
 - **They don't have to maintain it if they don't want to** — the maintainer runs
   it; IT just allows a low-risk appliance on the network.
 
-That reframes the ask from "approve a cloud vendor" (which failed) to "allow a
-self-contained, no-internet inventory appliance on the LAN" — a much smaller,
-lower-risk question.
+That reframes the ask from "approve a cloud vendor" to "allow a self-contained,
+no-internet inventory appliance on the LAN" — a much smaller, lower-risk
+question.
 
 > **Status:** this deployment stack is new and should be validated end-to-end on
 > the target hardware before you rely on it — image versions, the owner-bootstrap
