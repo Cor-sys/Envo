@@ -1,0 +1,141 @@
+# Self-hosted, no-cloud deployment of Stockroom.
+#
+# Everything below runs on ONE machine (a mini-PC, an old desktop, a college
+# server). No data leaves the box. This is the architecture that answers the
+# "cloud / TX-RAMP / personally-hosted" objections: there is no cloud.
+#
+#   docker compose --env-file deploy/.env -f deploy/docker-compose.yml up -d
+#
+# First run also applies the schema + migrations (see the `migrate` service).
+# Read deploy/SELF-HOST.md before your first boot — you must generate secrets.
+
+name: stockroom
+
+services:
+  # ---- Postgres (Supabase's image: ships the anon/authenticated/service_role
+  #      roles, the auth & storage schemas, and the extensions the app needs) ----
+  db:
+    image: supabase/postgres:15.1.1.78
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: postgres
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXP: 3600
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # ---- Auth: login, sessions, invites ----
+  auth:
+    image: supabase/gotrue:v2.158.1
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: 9999
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:${POSTGRES_PASSWORD}@db:5432/postgres
+      GOTRUE_SITE_URL: ${SUPABASE_PUBLIC_URL}
+      GOTRUE_JWT_SECRET: ${JWT_SECRET}
+      GOTRUE_JWT_EXP: 3600
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_DISABLE_SIGNUP: "true"      # accounts come from invites, not open signup
+      GOTRUE_MAILER_AUTOCONFIRM: "true"  # no SMTP needed for username/invite flow
+
+  # ---- Data API the app talks to ----
+  rest:
+    image: postgrest/postgrest:v12.2.3
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGRST_DB_URI: postgres://authenticator:${POSTGRES_PASSWORD}@db:5432/postgres
+      PGRST_DB_SCHEMAS: public,storage
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+      PGRST_DB_USE_LEGACY_GUCS: "false"
+
+  # ---- File storage: item photos, SDS PDFs (local disk, no S3) ----
+  storage:
+    image: supabase/storage-api:v1.11.13
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      rest:
+        condition: service_started
+    environment:
+      ANON_KEY: ${ANON_KEY}
+      SERVICE_KEY: ${SERVICE_ROLE_KEY}
+      POSTGREST_URL: http://rest:3000
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+      DATABASE_URL: postgres://supabase_storage_admin:${POSTGRES_PASSWORD}@db:5432/postgres
+      FILE_SIZE_LIMIT: 52428800
+      STORAGE_BACKEND: file
+      FILE_STORAGE_BACKEND_PATH: /var/lib/storage
+      TENANT_ID: stub
+      REGION: stub
+      GLOBAL_S3_BUCKET: stub
+      ENABLE_IMAGE_TRANSFORMATION: "false"
+    volumes:
+      - storage-data:/var/lib/storage
+
+  # ---- Edge functions: create-invite, redeem-invite, cache-sds ----
+  functions:
+    image: supabase/edge-runtime:v1.58.2
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SUPABASE_URL: http://web
+      SUPABASE_ANON_KEY: ${ANON_KEY}
+      SUPABASE_SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY}
+      SUPABASE_DB_URL: postgres://postgres:${POSTGRES_PASSWORD}@db:5432/postgres
+      VERIFY_JWT: "false"
+    volumes:
+      - ../supabase/functions:/home/deno/functions:ro
+    command: ["start", "--main-service", "/home/deno/functions"]
+
+  # ---- One-shot: apply db/schema.sql + db/migrations on first boot ----
+  migrate:
+    image: postgres:15-alpine
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ../db:/db:ro
+      - ./migrate.sh:/migrate.sh:ro
+    entrypoint: ["sh", "/migrate.sh"]
+    restart: "no"
+
+  # ---- The app + single-origin reverse proxy ----
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+      args:
+        VITE_SUPABASE_URL: ${SUPABASE_PUBLIC_URL}
+        VITE_SUPABASE_ANON_KEY: ${ANON_KEY}
+    restart: unless-stopped
+    depends_on:
+      - rest
+      - auth
+      - storage
+      - functions
+    ports:
+      - "${HTTP_PORT:-8080}:80"
+
+volumes:
+  db-data:
+  storage-data:
